@@ -66,7 +66,26 @@ def cubic(x, a, b, c, d):
     return a * x**3 + b * x**2 + c * x + d
 
 def exponential(x, a, b, c):
-    return a * np.exp(b * x) + c
+    """
+    Exponential function with scaling and overflow control.
+    
+    Parameters:
+    -----------
+    x : array-like
+        values on x axis 
+    a, b, c : float
+        parameters of the exponential function
+        
+    Returns:
+    --------
+    array-like
+        values computed by the exponential function 
+    """
+
+    x_scaled = (x - np.min(x)) / (np.max(x) - np.min(x))  # Normalize x
+    exp_component = np.exp(np.clip(b * x_scaled, -700, 700))  # Clip the exponent range
+
+    return a * exp_component + c
 
 def rational(x, a, b, c):
     return (a + b * x) / (x + c)
