@@ -184,7 +184,46 @@ def func5(x, a, b, r):
 
 def func8(x, a, b, c):
     return np.log((x + c) / (b + x)) - a
-
+def log_function(x, a, b, c):
+    """
+    Enhanced logarithmic function with input validation and numerical stability.
+    
+    Parameters:
+    -----------
+    x : array-like
+        Input values
+    a, b, c : float
+        Function parameters
+        
+    Returns:
+    --------
+    array-like
+        Computed logarithmic values
+    """
+    # Add small epsilon to prevent log(0)
+    eps = 1e-10
+    
+    # Ensure arrays
+    x = np.asarray(x)
+    
+    # Calculate numerator and denominator separately
+    numerator = x + c + eps
+    denominator = b + x + eps
+    
+    # Check for invalid values
+    valid_mask = (numerator > 0) & (denominator > 0)
+    
+    # if not np.all(valid_mask):
+    #     print(f"Warning: Invalid values found at x positions: {np.where(~valid_mask)[0]}")
+        
+    # Calculate ratio with epsilon to prevent division by zero
+    ratio = (numerator + eps) / (denominator + eps)
+    
+    # Calculate log with input validation
+    result = np.full_like(x, np.nan, dtype=float)
+    result[valid_mask] = np.log(ratio[valid_mask]) - a
+    
+    return result
 
 # Funzione di fitting e plotting considerando la dose come variabile dipendente 
 def best_fit(csv_file, title, x_name, y_name):
@@ -210,8 +249,8 @@ def best_fit(csv_file, title, x_name, y_name):
     func3, 
     func4, 
     func5, 
-    func8, 
-
+    #func8, 
+    log_function
 ]
 
     best_func = None
