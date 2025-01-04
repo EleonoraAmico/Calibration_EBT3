@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
 from sklearn.metrics import mean_squared_error
 
-def find_best_polynomial_fit(x, y, max_degree=5):
+def polynomial_fit(x, y, max_degree=5):
     """
     Find the best polynomial fit by testing different degrees
     
@@ -51,20 +51,6 @@ def find_best_polynomial_fit(x, y, max_degree=5):
             best_degree = degree
     return best_mse, best_degree, best_coefficients
 
-
-# Funzione di fitting (per esempio, razionale)
-def rational_new(x, a, b, c):
-    return (a + b * x) / (x + c)
-# Define various functions to fit
-def linear(x, a, b):
-    return a * x + b
-
-def quadratic(x, a, b, c):
-    return a * x**2 + b * x + c
-
-def cubic(x, a, b, c, d):
-    return a * x**3 + b * x**2 + c * x + d
-
 def exponential(x, a, b, c):
     """
     Exponential function with scaling and overflow control.
@@ -93,7 +79,7 @@ def rational(x, a, b, c):
 def double_exponential(x, a, b, c, d):
     return a * np.exp(b * x) + c * np.exp(d * x)
 
-# Additional functions from the image
+# Additional functions
 def func1(x, a, b):
     return (a * x) / (b * x + 1)
 
@@ -109,9 +95,6 @@ def func4(x, a, b):
 def func5(x, a, b, r):
     return a * x + b * x**r
 
-def polynomial(x, *coeffs):
-    return sum(c * x**i for i, c in enumerate(coeffs))
-
 def func7(x, a, b, c, d):
     return np.exp(a * x + b) - np.exp(c * x + d)
 
@@ -123,8 +106,7 @@ def func9(x, a, b, c, d):
 
 def func10(x, a, b, c):
     return c - a * np.exp(-b * x)
-def funct11(x, a, b, c, d, e):
-    return ( a*x + b*x**2+c*x**3+d*x**4+e)
+
 
 # Funzione di fitting e plotting considerando la dose come variabile dipendente 
 def best_fit(csv_file, title, x_name, y_name):
@@ -139,9 +121,6 @@ def best_fit(csv_file, title, x_name, y_name):
     
     # Funzione da provare (in questo caso solo rational_new)
     functions = [
-    linear, 
-    quadratic, 
-    cubic, 
     exponential, 
     rational, 
     double_exponential, 
@@ -150,12 +129,10 @@ def best_fit(csv_file, title, x_name, y_name):
     func3, 
     func4, 
     func5, 
-    polynomial, 
     func7, 
     func8, 
     func9, 
     func10,
-    funct11,
 ]
 
     best_func = None
