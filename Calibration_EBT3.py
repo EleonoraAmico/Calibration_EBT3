@@ -11,6 +11,46 @@ import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
 from sklearn.metrics import mean_squared_error
 
+def find_best_polynomial_fit(x, y, max_degree=5):
+    """
+    Find the best polynomial fit by testing different degrees
+    
+    Parameters:
+    x: array-like, data for the x-axis
+    y: array-like, data for the y-axis
+    max_degree: int, maximum degree of the polynomial to test
+    plot: bool, if True, generates a plot of the best fit
+    
+    Returns:
+    best_coefficients: coefficients of the best polynomial
+    best_mse: MSE of the best fit
+    best_degree: degree of the best polynomial
+    """
+
+    best_mse = float('inf')
+    best_coefficients = None
+    best_degree = 0
+    mse_history = []
+    
+    # Test diversi gradi
+    for degree in range(1, max_degree + 1):
+        print(degree)
+        # Fit polinomiale
+        coefficients = np.polyfit(x, y, degree)
+        p = np.poly1d(coefficients)
+        y_pred = p(x)
+        
+        # Calcola MSE
+        mse = mean_squared_error(y,y_pred)
+        mse_history.append(mse)
+        
+        # Aggiorna il migliore se necessario
+        if mse < best_mse:
+            best_mse = mse
+            best_coefficients = coefficients
+            best_degree = degree
+    return best_mse, best_degree, best_coefficients
+
 
 # Funzione di fitting (per esempio, razionale)
 def rational_new(x, a, b, c):
