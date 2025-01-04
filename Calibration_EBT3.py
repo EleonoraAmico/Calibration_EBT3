@@ -117,6 +117,7 @@ def double_exponential(x, a, b, c, d):
     exp_component_two= np.exp(np.clip(d * x_scaled, -700, 700))  # Clip the exponent range
     return a * exp_component_one + c * exp_component_two
 
+
 def exponential_difference(x, a, b, c, d):
     """
     Subtraction of exponential terms with scaling and overflow control.
@@ -134,8 +135,10 @@ def exponential_difference(x, a, b, c, d):
         values computed by the exponential difference function 
     """
     x_scaled = (x - np.min(x)) / (np.max(x) - np.min(x))  # Normalize x
-    exp_component_one= np.exp(np.clip(a * x_scaled + b, -700, 700))  # Clip the exponent range
-    exp_component_two= np.exp(np.clip(c * x_scaled + d, -700, 700))  # Clip the exponent range
+    # Add small epsilon to prevent underflow
+    eps = 1e-10
+    exp_component_one= np.exp(np.clip(a * x_scaled + b, -700, 700)) + eps # Clip the exponent range
+    exp_component_two= np.exp(np.clip(c * x_scaled + d, -700, 700)) + eps # Clip the exponent range
     return exp_component_one - exp_component_two
 
 def exponential_combination(x, a, b, c, d):
@@ -179,14 +182,8 @@ def func4(x, a, b):
 def func5(x, a, b, r):
     return a * x + b * x**r
 
-
-
 def func8(x, a, b, c):
     return np.log((x + c) / (b + x)) - a
-
-
-
-
 
 
 # Funzione di fitting e plotting considerando la dose come variabile dipendente 
@@ -220,12 +217,15 @@ def best_fit(csv_file, title, x_name, y_name):
     best_func = None
     best_popt = None
     best_mse = float('inf')
-    
+    fitting_results = []
     # Prova ogni funzione e scegli quella con il miglior errore quadratico medio
     for func in functions:
         try:
             # Ottieni i parametri ottimali con curve_fit
-            popt, _ = curve_fit(func, x, y)
+            popt, pcov, infodict, errmsg, ier = curve_fit(func, x, y,
+                                full_output=True,
+                                maxfev=10000,  # Increase maximum number of function evaluations
+                                method='lm' )
             
             # Calcola la curva di fitting
             y_fit = func(x, *popt)
@@ -233,16 +233,46 @@ def best_fit(csv_file, title, x_name, y_name):
             # Calcola l'errore quadratico medio (MSE)
             mse = mean_squared_error(y, y_fit)
             
+            # Check if covariance matrix is valid
+            has_valid_covariance = pcov is not None and not np.any(np.isinf(pcov))
+            
+            # Store results
+            fitting_results.append({
+                'function': func.__name__,
+                'mse': mse,
+                'valid_covariance': has_valid_covariance,
+                'success': True,
+                'error_message': None
+            })
+            #Plot dei dati con barre di errore
+            plt.errorbar(x, y, xerr=xerr, fmt='o', ecolor='red', capsize=5, capthick=2, label='Data')
+            
+            # Plot della curva di fit
+            x_fit = np.linspace(min(x), max(x), 100)
+            y_fit = func(x_fit, *popt)
+            plt.plot(x_fit, y_fit, '-', label=f'Fit: {func.__name__}')
+            
+            plt.xlabel(f'{x_name}')
+            plt.ylabel(f'{y_name}')
+            plt.title(title)
+            plt.legend()
+            plt.show()
             # Se l'MSE è migliore di quello precedente, salva i parametri
             if mse < best_mse:
                 best_mse = mse
                 best_func = func
                 best_popt = popt
+
         except Exception as e:
-            # Stampa l'errore ma continua con il prossimo tentativo
-            print(f"Fitting failed for function {func.__name__} with error: {e}")
+
+            fitting_results.append({
+                'function': func.__name__,
+                'mse': None,
+                'valid_covariance': False,
+                'success': False,
+                'error_message': str(e)
+            })
             continue
-    
     # Se è stata trovata una funzione adatta, procedi al plotting
     if best_func and best_popt is not None:
         print(f"Best fit function for {title}: {best_func.__name__}")
@@ -262,6 +292,17 @@ def best_fit(csv_file, title, x_name, y_name):
         plt.show()
     else:
         print(f"No valid fit found for {title}.")
+    # Print summary of fitting attempts
+    print("\nFitting Results Summary:")
+    print("-" * 80)
+    print(f"{'Function Name':<30} {'MSE':<15} {'Valid Covariance':<20} {'Success'}")
+    print("-" * 80)
+
+    for result in fitting_results:
+        mse_str = f"{result['mse']:.2e}" if result['mse'] is not None else "Failed"
+        print(f"{result['function']:<30} {mse_str:<15} {str(result['valid_covariance']):<20} {result['success']}")
+    
+    
     return best_popt
 
 # Fitting channel red 
