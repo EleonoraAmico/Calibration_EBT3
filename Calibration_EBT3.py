@@ -73,11 +73,95 @@ def exponential(x, a, b, c):
 
     return a * exp_component + c
 
-def rational(x, a, b, c):
-    return (a + b * x) / (x + c)
+def exponential_decreasing_function(x, a, b, c):
+    """
+    Function representing an exponential decay with an offset and with scaling and overflow control.
+    
+    Parameters:
+    -----------
+    x : array-like
+        values on x axis 
+    a, b, c : float
+        parameters of the exponential function
+        
+    Returns:
+    --------
+    array-like
+        values computed by the exponential function 
+    """
+
+    x_scaled = (x - np.min(x)) / (np.max(x) - np.min(x))  # Normalize x
+    exp_component = np.exp(np.clip(-b * x_scaled, -700, 700))  # Clip the exponent range
+    return c - a * exp_component
+
 
 def double_exponential(x, a, b, c, d):
-    return a * np.exp(b * x) + c * np.exp(d * x)
+    """
+    Sum of exponential function with scaling and overflow control.
+    
+    Parameters:
+    -----------
+    x : array-like
+        values on x axis 
+    a, b, c, d : float
+        parameters of the double exponential function
+        
+    Returns:
+    --------
+    array-like
+        values computed by the sum of two exponential functions
+    """
+
+    x_scaled = (x - np.min(x)) / (np.max(x) - np.min(x))  # Normalize x
+    exp_component_one= np.exp(np.clip(b * x_scaled, -700, 700))  # Clip the exponent range
+    exp_component_two= np.exp(np.clip(d * x_scaled, -700, 700))  # Clip the exponent range
+    return a * exp_component_one + c * exp_component_two
+
+def exponential_difference(x, a, b, c, d):
+    """
+    Subtraction of exponential terms with scaling and overflow control.
+    
+    Parameters:
+    -----------
+    x : array-like
+        values on x axis 
+    a, b, c, d : float
+        parameters of the exponential difference function
+        
+    Returns:
+    --------
+    array-like
+        values computed by the exponential difference function 
+    """
+    x_scaled = (x - np.min(x)) / (np.max(x) - np.min(x))  # Normalize x
+    exp_component_one= np.exp(np.clip(a * x_scaled + b, -700, 700))  # Clip the exponent range
+    exp_component_two= np.exp(np.clip(c * x_scaled + d, -700, 700))  # Clip the exponent range
+    return exp_component_one - exp_component_two
+
+def exponential_combination(x, a, b, c, d):
+    """
+    Sum of exponentials with positive and negative exponents with scaling and overflow control.
+    
+    Parameters:
+    -----------
+    x : array-like
+        values on x axis 
+    a, b, c, d : float
+        parameters of the exponential difference function
+        
+    Returns:
+    --------
+    array-like
+        values computed by the exponential combination function 
+    """
+    x_scaled = (x - np.min(x)) / (np.max(x) - np.min(x))  # Normalize x
+    exp_component_one= np.exp(np.clip(a * b * x_scaled, -700, 700))  # Clip the exponent range
+    exp_component_two= np.exp(np.clip(-c * d * x_scaled, -700, 700))  # Clip the exponent range
+    
+    return c * exp_component_one + d * exp_component_two
+
+def rational(x, a, b, c):
+    return (a + b * x) / (x + c)
 
 # Additional functions
 def func1(x, a, b):
@@ -95,17 +179,14 @@ def func4(x, a, b):
 def func5(x, a, b, r):
     return a * x + b * x**r
 
-def func7(x, a, b, c, d):
-    return np.exp(a * x + b) - np.exp(c * x + d)
+
 
 def func8(x, a, b, c):
     return np.log((x + c) / (b + x)) - a
 
-def func9(x, a, b, c, d):
-    return c * np.exp(a * b * x) + d * np.exp(-c * d * x)
 
-def func10(x, a, b, c):
-    return c - a * np.exp(-b * x)
+
+
 
 
 # Funzione di fitting e plotting considerando la dose come variabile dipendente 
@@ -122,17 +203,18 @@ def best_fit(csv_file, title, x_name, y_name):
     # Funzione da provare (in questo caso solo rational_new)
     functions = [
     exponential, 
-    rational, 
+    exponential_decreasing_function,
+    exponential_difference,
     double_exponential, 
+    exponential_combination,
+    rational, 
     func1, 
     func2, 
     func3, 
     func4, 
     func5, 
-    func7, 
     func8, 
-    func9, 
-    func10,
+
 ]
 
     best_func = None
@@ -183,5 +265,5 @@ def best_fit(csv_file, title, x_name, y_name):
     return best_popt
 
 # Fitting channel red 
-params_r=best_fit('Dati_calibrazione/Channel_red_DvsPV', 'Channel Red', 'PV', 'Dose (Gy)')
+params_r=best_fit('Channel_red_DvsPV', 'Channel Red', 'PV', 'Dose (Gy)')
 
