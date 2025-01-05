@@ -11,6 +11,8 @@ import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
 from sklearn.metrics import mean_squared_error
 
+
+
 def polynomial_fit(x, y, max_degree=5):
     """
     Find the best polynomial fit by testing different degrees
@@ -44,6 +46,20 @@ def polynomial_fit(x, y, max_degree=5):
         mse = mean_squared_error(y,y_pred)
         mse_history.append(mse)
         
+        #Plot dei dati con barre di errore
+        plt.errorbar(x, y, fmt='o', ecolor='red', capsize=5, capthick=2, label='Data')
+        
+        # Plot della curva di fit
+        x_fit = np.linspace(min(x), max(x), 100)
+        y_fit = p(x_fit)
+        plt.plot(x_fit, y_fit, '-', label=f'Fit: {degree}')
+        
+        plt.xlabel('PV')
+        plt.ylabel('Dose')
+        plt.title("Polynomial fit")
+        plt.legend()
+        plt.show()
+        print(mse_history)
         # Aggiorna il migliore se necessario
         if mse < best_mse:
             best_mse = mse
@@ -182,8 +198,6 @@ def func4(x, a, b):
 def func5(x, a, b, r):
     return a * x + b * x**r
 
-def func8(x, a, b, c):
-    return np.log((x + c) / (b + x)) - a
 def log_function(x, a, b, c):
     """
     Enhanced logarithmic function with input validation and numerical stability.
@@ -231,9 +245,9 @@ def best_fit(csv_file, title, x_name, y_name):
     df = pd.read_csv(csv_file)
     
     # Estrai i dati
-    x = df.iloc[:, 1].astype(float) # Pixel Value/netOD
-    xerr = df.iloc[:, 2].astype(float) #StDev
-    y = df.iloc[:, 0].astype(float)/100 #Dose
+    x = df.iloc[:, 0].astype(float) # Pixel Value/netOD
+    #xerr = df.iloc[:, 2].astype(float) #StDev
+    y = df.iloc[:, 1].astype(float)/100 #Dose
 
     
     # Funzione da provare (in questo caso solo rational_new)
@@ -249,14 +263,17 @@ def best_fit(csv_file, title, x_name, y_name):
     func3, 
     func4, 
     func5, 
-    #func8, 
     log_function
 ]
 
     best_func = None
     best_popt = None
     best_mse = float('inf')
+    best_degree = None
+    best_coefficients = None
     fitting_results = []
+    
+    best_mse, best_degree, best_coefficients = polynomial_fit(x,y)
     # Prova ogni funzione e scegli quella con il miglior errore quadratico medio
     for func in functions:
         try:
@@ -284,7 +301,7 @@ def best_fit(csv_file, title, x_name, y_name):
                 'error_message': None
             })
             #Plot dei dati con barre di errore
-            plt.errorbar(x, y, xerr=xerr, fmt='o', ecolor='red', capsize=5, capthick=2, label='Data')
+            plt.errorbar(x, y, fmt='o', ecolor='red', capsize=5, capthick=2, label='Data')
             
             # Plot della curva di fit
             x_fit = np.linspace(min(x), max(x), 100)
@@ -317,7 +334,7 @@ def best_fit(csv_file, title, x_name, y_name):
         print(f"Best fit function for {title}: {best_func.__name__}")
         print(f'MSE={best_mse}')
         # Plot dei dati con barre di errore
-        plt.errorbar(x, y, xerr=xerr, fmt='o', ecolor='red', capsize=5, capthick=2, label='Data')
+        plt.errorbar(x, y, fmt='o', ecolor='red', capsize=5, capthick=2, label='Data')
         
         # Plot della curva di fit
         x_fit = np.linspace(min(x), max(x), 100)
@@ -330,6 +347,8 @@ def best_fit(csv_file, title, x_name, y_name):
         plt.legend()
         plt.show()
     else:
+        print('best degree', best_degree)
+        print('best coefficients', best_coefficients)
         print(f"No valid fit found for {title}.")
     # Print summary of fitting attempts
     print("\nFitting Results Summary:")
@@ -343,7 +362,15 @@ def best_fit(csv_file, title, x_name, y_name):
     
     
     return best_popt
-
+#%%
 # Fitting channel red 
 params_r=best_fit('Channel_red_DvsPV', 'Channel Red', 'PV', 'Dose (Gy)')
+
+#%%
+df = pd.read_csv('Channel_red_DvsPV')
+x = df.iloc[:, 1].astype(float) # Pixel Value/netOD
+y = df.iloc[:, 0].astype(float) #Dose
+polynomial_fit(x,y)
+#%%
+params_r=best_fit('synthetic_data_decrescent_x.csv', 'Synthetic_data', 'PV', 'Dose (Gy)')
 
