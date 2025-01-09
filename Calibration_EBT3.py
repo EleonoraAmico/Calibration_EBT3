@@ -34,7 +34,7 @@ class CurveFitter:
             'log_function': self._log_function
         }
         
-    def process_values(self, x_values, y_values=None, mode=ProcessingMode.PV):
+    def _process_values(self, x_values, y_values=None, mode=ProcessingMode.PV):
         """
         Process x_values according to different modes.
         
@@ -77,9 +77,9 @@ class CurveFitter:
     
     # Add enum values as function attributes
     for mode in ProcessingMode:
-        setattr(process_values, mode.name, mode)
+        setattr(_process_values, mode.name, mode)
 
-    def exponential(self, x, a, b, c):
+    def _exponential(self, x, a, b, c):
         """
         Exponential function with scaling and overflow control.
         
@@ -101,7 +101,7 @@ class CurveFitter:
     
         return a * exp_component + c
 
-    def exponential_decreasing_function(self, x, a, b, c):
+    def _exponential_decreasing(self, x, a, b, c):
         """
         Function representing an exponential decay with an offset and with scaling and overflow control.
         
@@ -123,7 +123,7 @@ class CurveFitter:
         return c - a * exp_component
 
 
-    def double_exponential(self, x, a, b, c, d):
+    def _double_exponential(self, x, a, b, c, d):
         """
         Sum of exponential function with scaling and overflow control.
         
@@ -146,7 +146,7 @@ class CurveFitter:
         return a * exp_component_one + c * exp_component_two
 
 
-    def exponential_difference(self, x, a, b, c, d):
+    def _exponential_difference(self, x, a, b, c, d):
         """
         Subtraction of exponential terms with scaling and overflow control.
         
@@ -169,7 +169,7 @@ class CurveFitter:
         exp_component_two= np.exp(np.clip(c * x_scaled + d, -700, 700)) + eps # Clip the exponent range
         return exp_component_one - exp_component_two
 
-    def exponential_combination(self, x, a, b, c, d):
+    def _exponential_combination(self, x, a, b, c, d):
         """
         Sum of exponentials with positive and negative exponents with scaling and overflow control.
         
@@ -191,7 +191,7 @@ class CurveFitter:
         
         return c * exp_component_one + d * exp_component_two
 
-    def rational(self, x, a, b, c):
+    def _rational(self, x, a, b, c):
         """
         Function representing a generalized rational function with scaling.
     
@@ -222,7 +222,7 @@ class CurveFitter:
         
         return (a + b * x) / (x + c)
 
-    def hyperbolic_growth(self, x, a, b):
+    def _hyperbolic_growth(self, x, a, b):
         """
         Function representing a saturation curve.
     
@@ -242,7 +242,7 @@ class CurveFitter:
         """
         return (a * x) / (b * x + 1)
 
-    def rational_function_with_offset(self, x, a, e):
+    def _rational_with_offset(self, x, a, e):
         """
         Function representing a rational function with an offset.
     
@@ -262,7 +262,7 @@ class CurveFitter:
         """
         return (a + x) / (x + e)
 
-    def saturation_function_with_offset(self, x, b, a, c):
+    def _saturation_with_offset(self, x, b, a, c):
         """
         Function representing a saturating curve with an offset.
     
@@ -284,7 +284,7 @@ class CurveFitter:
         """
         return (b * x) / (a + x) + c
 
-    def linear_decay(self, x, a, b):
+    def _linear_decay(self, x, a, b):
         """
         Function representing a linear decay.
     
@@ -304,7 +304,7 @@ class CurveFitter:
         """
         return x - (a * x) / b
 
-    def polynomial_scaling(self, x, a, b, r):
+    def _polynomial_scaling(self, x, a, b, r):
         """
         Function representing polynomial scaling.
     
@@ -327,7 +327,7 @@ class CurveFitter:
         return a * x + b * x**r
 
 
-    def log_function(self, x, a, b, c):
+    def _log_function(self, x, a, b, c):
         """
         Enhanced logarithmic function with input validation and numerical stability.
         
@@ -438,7 +438,7 @@ class CurveFitter:
         """
         fitting_results= self.polynomial_fit(x_data, y_data, max_degree = 4)
         try:
-            x_processed = self.process_values(x_data, y_data, mode)
+            x_processed = self._process_values(x_data, y_data, mode)
         except Exception as e:
             print(f"Error processing x values: {str(e)}")
             return None, None, None, None
@@ -467,7 +467,7 @@ class CurveFitter:
             plt.show()
      
         
-    def calculate_best_fit(self, x, y, mode=ProcessingMode.PV ):
+    def calculate_best_fit(self, x, y, mode=ProcessingMode.PV):
         """
         Calculates the best fitting function and its parameters.
         Returns the best function, its coefficients, and MSE.
@@ -476,12 +476,12 @@ class CurveFitter:
             return None, None, None, None
         # Process x values according to the specified mode
         try:
-            x_processed = self.process_values(x, y, mode)
+            x_processed = self._process_values(x, y, mode)
         except Exception as e:
             print(f"Error processing x values: {str(e)}")
             return None, None, None, None
         
-        x_processed = self.process_values(x, y, mode)
+        x_processed = self._process_values(x, y, mode)
         best_func = None
         best_popt = None
         poly_mse, best_degree, best_coefficients, fitting_results = self.polynomial_fit(x_processed, y, max_degree=4)
@@ -496,7 +496,7 @@ class CurveFitter:
                                                              full_output=True,
                                                              maxfev=10000,
                                                              method='lm')
-                if pcov is not pcov is not None and not np.any(np.isinf(pcov)):
+                if pcov is not None and not np.any(np.isinf(pcov)):
                     y_fit = func(x_processed, *popt)
                     mse = mean_squared_error(y, y_fit)
                     
@@ -523,22 +523,22 @@ class CurveFitter:
                     'error_message': str(e)
                 })
                 
-            # Print summary of fitting attempts
-            print("\nFitting Results Summary:")
-            print("-" * 80)
-            print(f"{'Function Name':<30} {'MSE':<15} {'Valid Covariance':<20} {'Success'}")
-            print("-" * 80)
-            for result in fitting_results:
-                mse_str = f"{result['mse']:.2e}" if result['mse'] is not None else "Failed"
-                print(f"{result['function']:<30} {mse_str:<15} {str(result['valid_covariance']):<20} {result['success']}")
-            
-            if best_func is None or best_popt is None:
-                print("No valid fit found")
-                return
-            elif isinstance(best_func, int):
-                print(f'The best fitting function is polynomial degree {best_degree}')
-            else:
-                print(f'The best fitting function is {best_func.__name__}')
+        # Print summary of fitting attempts
+        print("\nFitting Results Summary:")
+        print("-" * 80)
+        print(f"{'Function Name':<30} {'MSE':<15} {'Valid Covariance':<20} {'Success'}")
+        print("-" * 80)
+        for result in fitting_results:
+            mse_str = f"{result['mse']:.2e}" if result['mse'] is not None else "Failed"
+            print(f"{result['function']:<30} {mse_str:<15} {str(result['valid_covariance']):<20} {result['success']}")
+        
+        if best_func is None or best_popt is None:
+            print("No valid fit found")
+            return
+        elif isinstance(best_func, int):
+            print(f'The best fitting function is polynomial degree {best_degree}')
+        else:
+            print(f'The best fitting function is {best_func.__name__}')
         return best_func, best_popt, best_mse, fitting_results
 
     
@@ -563,7 +563,7 @@ class CurveFitter:
         best_func, best_popt, best_mse, fitting_results = self.calculate_best_fit(x_data, y_data, mode=mode)
         # Process x values according to the specified mode
         try:
-            x_processed = self.process_values(x_data, y_data, mode)
+            x_processed = self._process_values(x_data, y_data, mode)
         except Exception as e:
             print(f"Error processing x values: {str(e)}")
             return None, None, None, None
@@ -623,7 +623,7 @@ class CurveFitter:
         """
         best_func, best_popt, best_mse, fitting_results = self.calculate_best_fit(x_data, y_data, mode=mode)
         try:
-            x_processed = self.process_values(x_data, y_data, mode)
+            x_processed = self._process_values(x_data, y_data, mode)
         except Exception as e:
             print(f"Error processing x values: {str(e)}")
             return None, None, None, None
@@ -648,10 +648,6 @@ class CurveFitter:
                 coefficients = None
                 if 'coefficients' in result:
                     coefficients = result['coefficients']
-                elif 'coef' in result:
-                    coefficients = result['coef']
-                elif 'params' in result:
-                    coefficients = result['params']
                     
                 if coefficients is not None:
                     p = np.poly1d(coefficients)
@@ -670,36 +666,27 @@ class CurveFitter:
                     plt.legend()
                     plt.grid(True)
                     plt.show()
-                else:
-                    popt = None
-                    if 'popt' in result:
-                        popt = result['popt']
-    
-                        
-                    if popt is not None:
-                        func_name = result.get('function', None)
-                        # Get the function from globals
-                        if isinstance(func_name, str):
-                            # Try to get the function from the global namespace
-                            func = globals().get(func_name)
-                            if func is None:
-                                print(f"Warning: Function '{func_name}' not found in global namespace for result {i+1}")
-                                continue
-                        else:
-                            func = func_name  # If it's already a function object
+                elif 'popt' in result and result['popt'] is not None:
+                    popt = result['popt']
+                    func_name = result.get('function', None)
+                    if func_name in self.fitting_functions:
+                        func = self.fitting_functions[func_name]
                         y_fit = func(x_fit, *popt)
-                        mse = result.get('mse', float('nan'))  # Get MSE if available
-                        
+                        mse = result.get('mse', float('nan'))
                         
                         plt.plot(x_fit, y_fit, '-', 
-                                label=f"Fit: {func.__name__} (MSE: {mse:.2e})")
+                                label=f"Fit: {func_name} (MSE: {mse:.2e})")
                         
-                        plt.xlabel('Pixel Value' if mode == ProcessingMode.PV else 'OD' if mode == ProcessingMode.OD  else 'netOD')
+                        plt.xlabel('Pixel Value' if mode == ProcessingMode.PV else 'OD' if mode == ProcessingMode.OD else 'netOD')
                         plt.ylabel('Dose (Gy)')
-                        plt.title(f"{title} - Degree {degree}")
-                        plt.legend()
-                        plt.grid(True)
-                        plt.show()
+                        plt.title(f"{title} - {func_name}")
+                    else: 
+                        print(f"Warning: Function '{func_name}' not found in global namespace for result {i+1}")
+                        continue
+
+                    plt.legend()
+                    plt.grid(True)
+                    plt.show()
                     
             except Exception as e:
                 print(f"Error plotting result {i+1}: {str(e)}")
