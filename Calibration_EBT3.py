@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
 from sklearn.metrics import mean_squared_error
 import enum
+import inspect
 
 class ProcessingMode(enum.Enum):
     PV = "PV"  # Pass-through values
@@ -425,48 +426,7 @@ class CurveFitter:
                 })
         
         return best_mse, best_degree, best_coefficients, fitting_results
-
-    def plot_polynomial_fits(self, x_data, y_data, max_degree = 4, title="Fits", mode=ProcessingMode.PV ):
-        """
-        Plot all polynomial fits along with the data
-        
-        Parameters:
-        x: array-like, data for the x-axis
-        y: array-like, data for the y-axis
-        fitting_results: list of dictionaries containing fitting results
-        title: str, plot title
-        """
-        fitting_results= self.polynomial_fit(x_data, y_data, max_degree = 4)
-        try:
-            x_processed = self._process_values(x_data, y_data, mode)
-        except Exception as e:
-            print(f"Error processing x values: {str(e)}")
-            return None, None, None, None
-        if fitting_results is None:
-            print("No valid fitting results to plot.")
-            return
-    
-        
-        for result in fitting_results:
-            plt.figure(figsize=(10, 6))
-            # Plot data points with error bars
-            plt.errorbar(x_processed, y_data, fmt='o', ecolor='red', capsize=5, capthick=2, label='Data')
-            
-            x_fit = np.linspace(min(x_processed), max(x_processed), 100)
-            if result['coefficients'] is not None:
-                p = np.poly1d(result['coefficients'])
-                y_fit = p(x_fit)
-                plt.plot(x_fit, y_fit, '-', 
-                        label=f"Polynomial Fit: Degree {result['degree']} (MSE: {result['mse']:.2e})")
-                
-            plt.xlabel('Pixel Value' if mode == ProcessingMode.PV else 'OD' if mode == ProcessingMode.OD  else 'netOD')
-            plt.ylabel('Dose (Gy)')
-            plt.title(f"{title} - Degree {result['degree']}")
-            plt.legend()
-            plt.grid(True)
-            plt.show()
-     
-        
+         
     def calculate_best_fit(self, x, y, mode=ProcessingMode.PV):
         """
         Calculates the best fitting function and its parameters.
@@ -540,6 +500,27 @@ class CurveFitter:
         else:
             print(f'The best fitting function is {best_func.__name__}')
         return best_func, best_popt, best_mse, fitting_results
+        # Print the best-fitting function details
+        # if isinstance(best_func, int):  # Polynomial case
+        #     print(f'The best fitting function is polynomial degree {best_degree}')
+        #     equation = " + ".join(
+        #         f"{coeff:.3f}*x**{i}" for i, coeff in enumerate(reversed(best_popt))
+        #     )
+        #     print(f"The equation of the polynomial is: {equation}")
+        # else:  # Non-polynomial function case
+        #     print(f'The best fitting function is {best_func.__name__}')
+        #     func_source = inspect.getsource(best_func)
+        #     for line in func_source.splitlines():
+        #         if "return" in line:
+        #             equation = line.strip().replace("return ", "")
+        #             # Replace variables with parameter values
+        #             for i, param in enumerate(best_popt):
+        #                 equation = equation.replace(f"p{i}", f"{param:.3f}")
+        #             print(f"The equation of the function is: {equation}")
+        #             break
+                
+        # return best_func, best_popt, best_mse, fitting_results
+
 
     
         
@@ -607,89 +588,9 @@ class CurveFitter:
         plt.legend()
         plt.grid(True)
         plt.show()
-    
-    
-    
-    def plot_all_fits(self, x_data, y_data, title="Polynomial Fits", mode=ProcessingMode.PV):
-        """
-        Plot all polynomial fits along with the data
         
-        Parameters:
-        x_data: array-like, data for the x-axis
-        y_data: array-like, data for the y-axis
-        fitting_results: list of dictionaries containing fitting results
-        title: str, plot title
-        mode: ProcessingMode enum, processing mode for the data
-        """
-        best_func, best_popt, best_mse, fitting_results = self.calculate_best_fit(x_data, y_data, mode=mode)
-        try:
-            x_processed = self._process_values(x_data, y_data, mode)
-        except Exception as e:
-            print(f"Error processing x values: {str(e)}")
-            return None, None, None, None
-            
-        if fitting_results is None or len(fitting_results) == 0:
-            print("No valid fitting results to plot.")
-            return
-        
-        for i, result in enumerate(fitting_results):
-            try:
-                
-                plt.figure(figsize=(10, 6))
-                
-                # Plot data points with error bars
-                plt.errorbar(x_processed, y_data, fmt='o', ecolor='red', 
-                            capsize=5, capthick=2, label='Data')
-                
-                # Plot polynomial fit
-                x_fit = np.linspace(min(x_processed), max(x_processed), 100)
-                
-                # Try different possible keys for coefficients
-                coefficients = None
-                if 'coefficients' in result:
-                    coefficients = result['coefficients']
-                    
-                if coefficients is not None:
-                    p = np.poly1d(coefficients)
-                    y_fit = p(x_fit)
-                    
-                    # Get degree from coefficients length or from result
-                    degree = result.get('degree', len(coefficients)-1)
-                    mse = result.get('mse', float('nan'))
-                    
-                    plt.plot(x_fit, y_fit, '-', 
-                            label=f"Fit: Degree {degree} (MSE: {mse:.2e})")
-                    
-                    plt.xlabel('Dose (Gy)')
-                    plt.ylabel('Pixel Value' if mode == ProcessingMode.PV else 'OD')
-                    plt.title(f"{title} - Degree {degree}")
-                    plt.legend()
-                    plt.grid(True)
-                    plt.show()
-                elif 'popt' in result and result['popt'] is not None:
-                    popt = result['popt']
-                    func_name = result.get('function', None)
-                    if func_name in self.fitting_functions:
-                        func = self.fitting_functions[func_name]
-                        y_fit = func(x_fit, *popt)
-                        mse = result.get('mse', float('nan'))
-                        
-                        plt.plot(x_fit, y_fit, '-', 
-                                label=f"Fit: {func_name} (MSE: {mse:.2e})")
-                        
-                        plt.xlabel('Pixel Value' if mode == ProcessingMode.PV else 'OD' if mode == ProcessingMode.OD else 'netOD')
-                        plt.ylabel('Dose (Gy)')
-                        plt.title(f"{title} - {func_name}")
-                    else: 
-                        print(f"Warning: Function '{func_name}' not found in global namespace for result {i+1}")
-                        continue
-
-                    plt.legend()
-                    plt.grid(True)
-                    plt.show()
-                    
-            except Exception as e:
-                print(f"Error plotting result {i+1}: {str(e)}")
-                continue
-
+    
+    
+    
+    
 
