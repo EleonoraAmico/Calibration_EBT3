@@ -520,74 +520,8 @@ class CurveFitter:
         #             break
                 
         # return best_func, best_popt, best_mse, fitting_results
-
-
+  
     
-        
-
-    
-
-    def plot_best_fits(self, x_data, y_data, mode=ProcessingMode.PV):
-        """
-        Plots the best fit curve along with the data points
-        
-        Parameters:
-        x_data: array-like, data for the x-axis
-        y_data: array-like, data for the y-axis
-        best_func: best fitting function
-        best_popt: parameters for best fitting function
-        best_mse: mean squared error of the best fit
-        title: str, plot title
-        x_name: str, name for x-axis
-        y_name: str, name for y-axis
-        """
-        best_func, best_popt, best_mse, fitting_results = self.calculate_best_fit(x_data, y_data, mode=mode)
-        # Process x values according to the specified mode
-        try:
-            x_processed = self._process_values(x_data, y_data, mode)
-        except Exception as e:
-            print(f"Error processing x values: {str(e)}")
-            return None, None, None, None
-        
-        if best_func is None or best_popt is None:
-            print("No valid fit found")
-            return
-        elif isinstance(best_func, int):
-            
-    
-            # Plot polynomial fit
-            x_fit = np.linspace(min(x_processed), max(x_processed), 100)
-            coefficients = best_popt
-            p = np.poly1d(coefficients)
-            y_fit = p(x_fit)
-            
-            #y_fit = result['polynomial'](x_fit)
-            plt.plot(x_fit, y_fit, '-', 
-                    label=f"Fit: Degree {best_func} (MSE: {best_mse:.2e})")
-    
-        else:
-            # Convert x values to Gray if they aren't already
-    
-            print(f"Best fit function: {best_func.__name__}")
-            print(f'MSE: {best_mse:.2e}')
-            
-            plt.figure(figsize=(10, 6))
-            
-            
-            
-            # Plot best fit curve
-            x_fit = np.linspace(min(x_processed), max(x_processed), 100)
-            y_fit = best_func(x_fit, *best_popt)
-            plt.plot(x_fit, y_fit, '-', label=f'Best Fit: {best_func.__name__} (MSE: {best_mse:.2e})')
-            
-        # Plot data points with error bars
-        plt.errorbar(x_processed, y_data, fmt='o', ecolor='red', capsize=5, capthick=2, label='Data')   
-        plt.xlabel('Pixel Value' if mode == ProcessingMode.PV else 'OD' if mode == ProcessingMode.OD  else 'netOD')
-        plt.ylabel('Dose (Gy)')
-        plt.title('Fitting Result')
-        plt.legend()
-        plt.grid(True)
-        plt.show()
         
     
     

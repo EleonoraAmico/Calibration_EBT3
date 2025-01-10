@@ -15,7 +15,7 @@ class PlotType(enum.Enum):
     ALL = "all"
     POLYNOMIAL = "polynomial"
     FUNCTION = "function"
-    BEST_FUNC = "best func"
+    BEST_FIT = "best fit"
 
 class FitPlotter(CurveFitter):  # Inherit from CurveFitter
     def __init__(self):
@@ -35,6 +35,11 @@ class FitPlotter(CurveFitter):  # Inherit from CurveFitter
         # Now calculate_best_fit is available through inheritance
         best_func, best_popt, best_mse, fitting_results = self.calculate_best_fit(x_data, y_data, mode)
         
+        try:
+            x_processed = self._process_values(x_data, y_data, mode)
+        except Exception as e:
+            print(f"Error processing x values: {str(e)}")
+            
         if fitting_results is None or len(fitting_results) == 0:
             print("No valid fitting results to plot.")
             return
@@ -48,6 +53,44 @@ class FitPlotter(CurveFitter):  # Inherit from CurveFitter
                 print("Function name must be provided for function plotting.")
                 return
             self._plot_specific_function(x_data, y_data, fitting_results, function_name, title, mode)
+        elif plot_type == PlotType.BEST_FIT:
+            self._plot_best_fit(x_processed, y_data, best_func, best_popt, best_mse, title, mode)
+
+    def _plot_best_fit(self, x_processed, y_data, best_func, best_popt, best_mse, title, mode):
+        """Plot only the best fit"""
+        if best_func is None or best_popt is None:
+            print("No valid best fit found")
+            return
+            
+        plt.figure(figsize=(10, 6))
+        
+        # Plot data points with error bars
+        plt.errorbar(x_processed, y_data, fmt='o', ecolor='red', 
+                    capsize=5, capthick=2, label='Data')
+        
+        x_fit = np.linspace(min(x_processed), max(x_processed), 100)
+        
+        if isinstance(best_func, int):
+            # Polynomial case
+            coefficients = best_popt
+            p = np.poly1d(coefficients)
+            y_fit = p(x_fit)
+            plt.plot(x_fit, y_fit, '-', 
+                    label=f"Best Fit: Polynomial Degree {best_func} (MSE: {best_mse:.2e})")
+        else:
+            # Function case
+            y_fit = best_func(x_fit, *best_popt)
+            plt.plot(x_fit, y_fit, '-', 
+                    label=f'Best Fit: {best_func.__name__} (MSE: {best_mse:.2e})')
+        
+        plt.xlabel('Pixel Value' if mode == ProcessingMode.PV 
+                  else 'OD' if mode == ProcessingMode.OD 
+                  else 'netOD')
+        plt.ylabel('Dose (Gy)')
+        plt.title(f'{title} - Best Fit')
+        plt.legend()
+        plt.grid(True)
+        plt.show()
 
     PlotType = PlotType
 
