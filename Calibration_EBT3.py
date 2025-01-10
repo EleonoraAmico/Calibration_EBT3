@@ -370,6 +370,10 @@ class CurveFitter:
         return result
 
     def polynomial_fit(self, x, y, max_degree=4):
+        
+        
+        
+        
         """
         Find the best polynomial fit by testing different degrees
         
@@ -427,6 +431,37 @@ class CurveFitter:
         
         return best_mse, best_degree, best_coefficients, fitting_results
          
+    
+    
+    
+    def print_fitting_results(self, fitting_results):
+        """
+        Print a formatted summary of all fitting results.
+        
+        Parameters:
+        -----------
+        fitting_results : list
+            List of dictionaries containing fitting results for each function
+        """
+        print("\nFitting Results Summary:")
+        print("-" * 80)
+        print(f"{'Function Name':<30} {'MSE':<15} {'Valid Covariance':<20} {'Success'}")
+        print("-" * 80)
+        
+        for result in fitting_results:
+            # Format the function name to be more readable
+            func_name = result['function']
+            if func_name.startswith('polynomial_degree_'):
+                displayed_name = f"Polynomial Degree {func_name.split('_')[-1]}"
+            else:
+                # Replace underscores with spaces and capitalize each word
+                displayed_name = ' '.join(word.capitalize() for word in func_name.split('_'))
+            
+            # Format MSE value
+            mse_str = f"{result['mse']:.2e}" if result['mse'] is not None else "Failed"
+            
+            print(f"{displayed_name:<30} {mse_str:<15} {str(result['valid_covariance']):<20} {result['success']}")
+
     def calculate_best_fit(self, x, y, mode=ProcessingMode.PV):
         """
         Calculates the best fitting function and its parameters.
@@ -482,23 +517,36 @@ class CurveFitter:
                     'success': False,
                     'error_message': str(e)
                 })
-                
-        # Print summary of fitting attempts
-        print("\nFitting Results Summary:")
-        print("-" * 80)
-        print(f"{'Function Name':<30} {'MSE':<15} {'Valid Covariance':<20} {'Success'}")
-        print("-" * 80)
-        for result in fitting_results:
-            mse_str = f"{result['mse']:.2e}" if result['mse'] is not None else "Failed"
-            print(f"{result['function']:<30} {mse_str:<15} {str(result['valid_covariance']):<20} {result['success']}")
         
+        # Replace the printing section with:
+        self.print_fitting_results(fitting_results)
+        
+        # # Print summary of fitting attempts
+        # print("\nFitting Results Summary:")
+        # print("-" * 80)
+        # print(f"{'Function Name':<30} {'MSE':<15} {'Valid Covariance':<20} {'Success'}")
+        # print("-" * 80)
+        # for result in fitting_results:
+        #     mse_str = f"{result['mse']:.2e}" if result['mse'] is not None else "Failed"
+        #     print(f"{result['function']:<30} {mse_str:<15} {str(result['valid_covariance']):<20} {result['success']}")
         if best_func is None or best_popt is None:
             print("No valid fit found")
             return
         elif isinstance(best_func, int):
-            print(f'The best fitting function is polynomial degree {best_degree}')
+            print(f'The best fitting function is Polynomial Degree {best_degree}')
         else:
-            print(f'The best fitting function is {best_func.__name__}')
+            # Get the function name without the leading underscore and format it
+            func_name = best_func.__name__.lstrip('_')
+            formatted_name = ' '.join(word.capitalize() for word in func_name.split('_'))
+            print(f'The best fitting function is {formatted_name}')
+            
+        # if best_func is None or best_popt is None:
+        #     print("No valid fit found")
+        #     return
+        # elif isinstance(best_func, int):
+        #     print(f'The best fitting function is polynomial degree {best_degree}')
+        # else:
+        #     print(f'The best fitting function is {best_func.__name__}')
         return best_func, best_popt, best_mse, fitting_results
         # Print the best-fitting function details
         # if isinstance(best_func, int):  # Polynomial case
