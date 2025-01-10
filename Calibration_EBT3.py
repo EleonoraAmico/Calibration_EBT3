@@ -462,7 +462,7 @@ class CurveFitter:
             
             print(f"{displayed_name:<30} {mse_str:<15} {str(result['valid_covariance']):<20} {result['success']}")
 
-    def calculate_best_fit(self, x, y, mode=ProcessingMode.PV):
+    def calculate_best_fit(self, x, y, mode=ProcessingMode.PV, print_results= False):
         """
         Calculates the best fitting function and its parameters.
         Returns the best function, its coefficients, and MSE.
@@ -518,8 +518,8 @@ class CurveFitter:
                     'error_message': str(e)
                 })
         
-        # Replace the printing section with:
-        self.print_fitting_results(fitting_results)
+        if print_results == True:
+            self.print_fitting_results(fitting_results)
         
         # # Print summary of fitting attempts
         # print("\nFitting Results Summary:")
