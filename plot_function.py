@@ -75,13 +75,16 @@ class FitPlotter(CurveFitter):  # Inherit from CurveFitter
             coefficients = best_popt
             p = np.poly1d(coefficients)
             y_fit = p(x_fit)
+            displayed_name = f"Polynomial Degree {best_func.split('_')[-1]}"
             plt.plot(x_fit, y_fit, '-', 
-                    label=f"Best Fit: Polynomial Degree {best_func} (MSE: {best_mse:.2e})")
+                    label=f"Best Fit: Polynomial Degree {displayed_name} (MSE: {best_mse:.2e})")
         else:
             # Function case
             y_fit = best_func(x_fit, *best_popt)
+            func_name = best_func.__name__.lstrip('_')
+            formatted_name = ' '.join(word.capitalize() for word in func_name.split('_'))
             plt.plot(x_fit, y_fit, '-', 
-                    label=f'Best Fit: {best_func.__name__} (MSE: {best_mse:.2e})')
+                    label=f'Best Fit: {formatted_name} (MSE: {best_mse:.2e})')
         
         plt.xlabel('Pixel Value' if mode == ProcessingMode.PV 
                   else 'OD' if mode == ProcessingMode.OD 
