@@ -41,9 +41,15 @@ class SingleChannelCalibration(CurveFitter):
         best_func, best_popt, best_mse, _ = self.calculate_best_fit(
             data[0], data[1], mode
         )
+        # Handle case when best_func is a polynomial degree number
+        if isinstance(best_func, int):
+            function_name = f'polynomial_degree_{best_func}'
+            print(f"Function name: {function_name}, Type: {type(function_name)}")
+        else:
+            function_name = best_func.__name__
         
         self.calibration_results = {
-            'function': best_func.__name__,  # Store the actual function since we inherit from CurveFitter
+            'function': function_name,  # Store the actual function since we inherit from CurveFitter
             'parameters': best_popt,
             'mse': best_mse,
             'mode': mode
@@ -61,27 +67,54 @@ class SingleChannelCalibration(CurveFitter):
         # Check if modes match
         if mode != self.calibration_results['mode']:
             print(f"Warning: Processing mode mismatch. Calibration used {self.calibration_results['mode']}, but calculating dose with {mode}. They should be the same for accurate results.")
-        self.func = getattr(CurveFitter, self.calibration_results['function'], None)
+        # self.func = getattr(CurveFitter, self.calibration_results['function'], None)
 
-        # Check if the function is valid
-        if not callable(self.func):
-            raise ValueError(f"Invalid function '{self.calibration_results['function']}' for {self.channel_name} channel")
-        # self.func = self.calibration_results['function']
+        # # Check if the function is valid
+        # if not callable(self.func):
+        #     raise ValueError(f"Invalid function '{self.calibration_results['function']}' for {self.channel_name} channel")
+        # # self.func = self.calibration_results['function']
         # print(self.func)
-        
-        red_coeffs = self.calibration_results['parameters']
-        
+        function_name = self.calibration_results['function']
+        print(function_name)
+        coeffs = self.calibration_results['parameters']
+        # Prepare the input data based on mode
         if mode == ProcessingMode.PV:
-            dose_gy_r=self.func(self, image, *red_coeffs)
-            
+            input_data = image
         elif mode == ProcessingMode.OD:
-            OD_image = np.log10(65535 / image)
-            dose_gy_r=self.func(self, OD_image, *red_coeffs)
-            
+            input_data = np.log10(65535 / image)
         elif mode == ProcessingMode.NET_OD:
-            log_PV = np.where(image / self.background_mean > 0,
-                             -np.log10(image / self.background_mean), 0)
-            dose_gy_r = self.func(self, log_PV, *red_coeffs)
+            input_data = np.where(image / self.background_mean > 0,
+                               -np.log10(image / self.background_mean), 0)
+        
+        # Handle polynomial case
+        function_name = function_name.strip().lower()
+        if function_name.startswith('polynomial'):
+            print("Polynomial function detected.")
+        else:
+            print(f"Function '{function_name}' does not start with 'polynomial'.")
+        if function_name.startswith('polynomial'):
+            print(coeffs)
+            p = np.poly1d(coeffs)
+            dose_gy_r = p(input_data)
+        else:
+            # Handle regular function case
+            self.func = getattr(CurveFitter, function_name, None)
+            if not callable(self.func):
+                raise ValueError(f"Invalid function '{function_name}' for {self.channel_name} channel")
+            dose_gy_r = self.func(self, input_data, *coeffs)
+        # red_coeffs = self.calibration_results['parameters']
+        
+        # if mode == ProcessingMode.PV:
+        #     dose_gy_r=self.func(self, image, *red_coeffs)
+            
+        # elif mode == ProcessingMode.OD:
+        #     OD_image = np.log10(65535 / image)
+        #     dose_gy_r=self.func(self, OD_image, *red_coeffs)
+            
+        # elif mode == ProcessingMode.NET_OD:
+        #     log_PV = np.where(image / self.background_mean > 0,
+        #                      -np.log10(image / self.background_mean), 0)
+        #     dose_gy_r = self.func(self, log_PV, *red_coeffs)
         
         return dose_gy_r
 
