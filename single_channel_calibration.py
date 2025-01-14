@@ -44,7 +44,6 @@ class SingleChannelCalibration(CurveFitter):
         # Handle case when best_func is a polynomial degree number
         if isinstance(best_func, int):
             function_name = f'polynomial_degree_{best_func}'
-            print(f"Function name: {function_name}, Type: {type(function_name)}")
         else:
             function_name = best_func.__name__
         
@@ -56,7 +55,7 @@ class SingleChannelCalibration(CurveFitter):
         }
 
         self.background_mean = self._find_background_mean(data[0], data[1])
-        print(self.background_mean)
+
         return self.calibration_results
         
     def calculate_dose(self, image: np.ndarray, mode: ProcessingMode = ProcessingMode.PV) -> np.ndarray:
@@ -73,7 +72,6 @@ class SingleChannelCalibration(CurveFitter):
                 f"They must be the same for accurate results."
             )
         function_name = self.calibration_results['function']
-        print(function_name)
         coeffs = self.calibration_results['parameters']
         # Prepare the input data based on mode
         if mode == ProcessingMode.PV:
@@ -93,7 +91,6 @@ class SingleChannelCalibration(CurveFitter):
         else:
             print(f"Function '{function_name}' does not start with 'polynomial'.")
         if function_name.startswith('polynomial'):
-            print(coeffs)
             p = np.poly1d(coeffs)
             dose_gy_r = p(input_data)
         else:
