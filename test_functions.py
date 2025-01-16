@@ -104,4 +104,27 @@ def test_exponential_with_offset_increasing_trend():
     # Check decreasing trend
     assert np.all(np.diff(result) > 0)
 
+def test_exponential_x_scaling():
+    """Tests that x values are correctly scaled to prevent overflow
+    
+    GIVEN: A CurveFitter instance and x values of different magnitudes
+    WHEN: The exponential function is called
+    THEN: The function handles different scales of x values appropriately
+    """
+    fitter = CurveFitter()
+    x1 = np.array([0, 1, 2])
+    x2 = x1 * 1000  # Much larger values
+    
+    # Same parameters for both calls
+    a, b, c = 1.0, 1.0, 0.0
+    
+    result1 = fitter._exponential(x1, a, b, c)
+    result2 = fitter._exponential(x2, a, b, c)
+    
+    # The results should follow similar patterns despite different x scales
+    assert np.all(np.isfinite(result1))
+    assert np.all(np.isfinite(result2))
+    assert np.all(np.diff(result1) > 0) == np.all(np.diff(result2) > 0)
+
+
 
