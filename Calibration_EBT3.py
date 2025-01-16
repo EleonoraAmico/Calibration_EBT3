@@ -116,11 +116,19 @@ class CurveFitter:
         --------
         array-like
             values computed by the exponential function 
+        
+        Raises:
+        -------
+        ValueError
+            If b == 0, since the function would become constant and not exponential.
         ------
         Description: 
             It computes an exponential decreasing function with an offset (a), 
             a scaling factor (b) and a shift (c). 
         """
+        
+        if b == 0:
+            raise ValueError("Parameter 'b' must not be zero, as this would result in a constant function.")
         x_scaled = (x - np.min(x)) / (np.max(x) - np.min(x))  # Normalize x
         exp_component = np.exp(np.clip(-b * x_scaled, -700, 700))  # Clip the exponent range
         return c - a * exp_component
@@ -142,7 +150,7 @@ class CurveFitter:
         array-like
             values computed by the sum of two exponential functions
         """
-    
+        
         x_scaled = (x - np.min(x)) / (np.max(x) - np.min(x))  # Normalize x
         exp_component_one= np.exp(np.clip(b * x_scaled, -700, 700))  # Clip the exponent range
         exp_component_two= np.exp(np.clip(d * x_scaled, -700, 700))  # Clip the exponent range
