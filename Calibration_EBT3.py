@@ -121,11 +121,18 @@ class CurveFitter:
         array-like
             values computed by the exponential function 
         """
+        if len(x) == 0:
+            raise ValueError("Input array 'x' must not be empty.")
+        
+        # Handle division by zero in normalization
+        if np.max(x) - np.min(x) == 0:
+            x_scaled = np.zeros_like(x)
+        else:
+            x_scaled = (x - np.min(x)) / (np.max(x) - np.min(x))
         if b == 0:
             raise ValueError("Parameter 'b' must not be zero, as this would result in a constant function.")
         if a == 0: 
             raise ValueError("Parameter 'a' must not be zero, as this would result in a constant function.")
-        x_scaled = (x - np.min(x)) / (np.max(x) - np.min(x))  # Normalize x
         exp_component = np.exp(np.clip(b * x_scaled, -700, 700))  # Clip the exponent range
     
         return a * exp_component + c
