@@ -52,7 +52,7 @@ def test_exponential_decreasing_basic():
     assert np.all(np.diff(result) < 0)
 
 def test_exponential_with_offset_decreasing_trend():
-    """Tests that _exponential_with_offset function produces expected output
+    """Tests that _exponential function produces expected output
     
     GIVEN: A CurveFitter instance and simple x values with known parameters
     WHEN: The _exponential function is called
@@ -72,7 +72,7 @@ def test_exponential_with_offset_decreasing_trend():
     assert np.all(np.diff(result) < 0)
 
 def test_exponential_with_offset_coefficient_b_equal_to_zero():
-    """Tests that _exponential_with_offset function produces expected output
+    """Tests that _exponential function produces expected output
     
     GIVEN: A CurveFitter instance and simple x values with known parameters
     WHEN: The _exponential function is called
@@ -81,6 +81,20 @@ def test_exponential_with_offset_coefficient_b_equal_to_zero():
     fitter = CurveFitter()
     x = np.array([0, 1, 2])
     a, b, c = -1.0, 0, 2.0
+    
+    with pytest.raises(ValueError):
+        result = fitter._exponential(x, a, b, c)
+        
+def test_exponential_with_offset_coefficient_a_equal_to_zero():
+    """Tests that _exponential function produces expected output
+    
+    GIVEN: A CurveFitter instance and simple x values with known parameters
+    WHEN: The _exponential function is called
+    THEN: The output shows decreasing trend and proper shape
+    """
+    fitter = CurveFitter()
+    x = np.array([0, 1, 2])
+    a, b, c = 0.0, 1, 2.0
     
     with pytest.raises(ValueError):
         result = fitter._exponential(x, a, b, c)
@@ -128,9 +142,9 @@ def test_exponential_x_scaling():
     assert np.all(np.diff(result1) > 0) == np.all(np.diff(result2) > 0)
     
 @given(
-    x=st.lists(st.floats(min_value=0, max_value=65535), min_size=1),
-    a=st.floats(min_value=-10, max_value=10),
-    b=st.floats(min_value=-10, max_value=10),
+    x=st.lists(st.floats(min_value=0, max_value=65535), min_size=1), #Exclude x=0
+    a=st.floats(min_value=-10, max_value=10).filter(lambda x: x != 0),  # Exclude a=0
+    b=st.floats(min_value=-10, max_value=10).filter(lambda x: x != 0),  # Exclude b=0
     c=st.floats(min_value=-10, max_value=10)
 )
 def test_exponential_bounds(x, a, b, c):
