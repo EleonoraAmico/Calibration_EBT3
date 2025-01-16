@@ -110,13 +110,21 @@ class CurveFitter:
             values on x axis 
         a, b, c : float
             parameters of the exponential function
+        
             
         Returns:
         --------
         array-like
             values computed by the exponential function 
+        ValueError
+            If `a` is less than 0.
+            If `b` is less than 0.
+        ------
+        Description: 
+            It computes an exponential decreasing function with an offset (a), 
+            a scaling factor (b) and a shift (c). 
+            a and b must be less than 0 to ensure the decreasing trend
         """
-    
         x_scaled = (x - np.min(x)) / (np.max(x) - np.min(x))  # Normalize x
         exp_component = np.exp(np.clip(-b * x_scaled, -700, 700))  # Clip the exponent range
         return c - a * exp_component
@@ -160,6 +168,9 @@ class CurveFitter:
         --------
         array-like
             values computed by the exponential difference function 
+         Raises:
+        -------
+
         """
         x_scaled = (x - np.min(x)) / (np.max(x) - np.min(x))  # Normalize x
         # Add small epsilon to prevent underflow
@@ -193,6 +204,7 @@ class CurveFitter:
     def _rational(self, x, a, b, c):
         """
         Function representing a generalized rational function with scaling.
+        
     
         Parameters:
         -----------
@@ -209,6 +221,11 @@ class CurveFitter:
         --------
         array-like
             Output values computed as (a + b * x) / (x + c).
+        
+        Raises
+        ------
+        ValueError
+            If any value in x is equal to c, which would make the denominator zero
     
         Description:
         ------------
@@ -217,9 +234,13 @@ class CurveFitter:
         and a shift \(c\) in the denominator. 
         The additional parameter \(b\) allows for more flexible control 
         over the rate of growth in the numerator compared to simpler rational functions.
+        x cannot equal c as this would result in division by zero.
         """
-        
-        return (a + b * x) / (x + c)
+        denominator = x - c
+        if np.any(denominator == 0):
+            raise ValueError("Invalid input: denominator would be zero")
+        return (a * x + b) / denominator
+
 
     def _hyperbolic_growth(self, x, a, b):
         """
