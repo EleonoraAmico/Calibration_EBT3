@@ -8,6 +8,7 @@ Created on Thu Jan 16 10:32:33 2025
 import numpy as np
 from Calibration_EBT3 import CurveFitter
 import pytest
+from hypothesis import given, strategies as st
 
 # Tests for individual curve functions
 def test_exponential_increasing_basic():
@@ -125,6 +126,25 @@ def test_exponential_x_scaling():
     assert np.all(np.isfinite(result1))
     assert np.all(np.isfinite(result2))
     assert np.all(np.diff(result1) > 0) == np.all(np.diff(result2) > 0)
+    
+@given(
+    x=st.lists(st.floats(min_value=0, max_value=65535), min_size=1),
+    a=st.floats(min_value=-10, max_value=10),
+    b=st.floats(min_value=-10, max_value=10),
+    c=st.floats(min_value=-10, max_value=10)
+)
+def test_exponential_bounds(x, a, b, c):
+    """Tests that the exponential function produces finite values.
+    
+    GIVEN: Random arrays of x values and parameters
+    WHEN: The exponential function is called
+    THEN: All output values should be finite
+    """
+    fitter = CurveFitter()
+    x_arr = np.array(x)
+    result = fitter._exponential(x_arr, a, b, c)
+    
+    assert np.all(np.isfinite(result)), "All outputs should be finite"
 
 
 
