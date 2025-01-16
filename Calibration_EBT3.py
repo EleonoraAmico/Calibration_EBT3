@@ -20,7 +20,7 @@ class CurveFitter:
     def __init__(self):
         self.fitting_functions = {
             'exponential': self._exponential,
-            'exponential_decreasing': self._exponential_decreasing,
+            'exponential_with_offset': self._exponential_with_offset,
             'exponential_difference': self._exponential_difference,
             'double_exponential': self._double_exponential,
             'exponential_combination': self._exponential_combination,
@@ -100,9 +100,9 @@ class CurveFitter:
     
         return a * exp_component + c
 
-    def _exponential_decreasing(self, x, a, b, c):
+    def _exponential_with_offset(self, x, a, b, c):
         """
-        Function representing an exponential decay with an offset and with scaling and overflow control.
+        Function representing an exponential with an offset and with scaling and overflow control.
         
         Parameters:
         -----------
@@ -116,14 +116,10 @@ class CurveFitter:
         --------
         array-like
             values computed by the exponential function 
-        ValueError
-            If `a` is less than 0.
-            If `b` is less than 0.
         ------
         Description: 
             It computes an exponential decreasing function with an offset (a), 
             a scaling factor (b) and a shift (c). 
-            a and b must be less than 0 to ensure the decreasing trend
         """
         x_scaled = (x - np.min(x)) / (np.max(x) - np.min(x))  # Normalize x
         exp_component = np.exp(np.clip(-b * x_scaled, -700, 700))  # Clip the exponent range
