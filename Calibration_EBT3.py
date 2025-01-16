@@ -20,7 +20,6 @@ class CurveFitter:
     def __init__(self):
         self.fitting_functions = {
             'exponential': self._exponential,
-            'exponential_with_offset': self._exponential_with_offset,
             'exponential_difference': self._exponential_difference,
             'double_exponential': self._double_exponential,
             'exponential_combination': self._exponential_combination,
@@ -60,20 +59,48 @@ class CurveFitter:
         else:
             raise ValueError(f"Unknown processing mode: {mode}")
             
+    
     def _validate_data(self, x, y):
         """
         Validates input data ranges.
-        Returns True if valid, False otherwise.
+        
+        Parameters:
+        -----------
+        x : array-like
+            Input x values that must be between 0 and 65535
+        y : array-like
+            Input y values that must be between 0 and 50 Gy
+            
+        Returns:
+        --------
+        bool
+            True if data is valid, False otherwise
+            
+        Raises:
+        -------
+        TypeError
+            If either x or y is not provided
+        ValueError
+            If x or y is empty or None
         """
-
+        # Check if inputs are provided and not None
+        if x is None or y is None:
+            raise ValueError("Input arrays cannot be None")
+        
+        # Check if inputs are not empty
+        if len(x) == 0 or len(y) == 0:
+            raise ValueError("Input arrays cannot be empty")
+            
+        # Check value ranges
         if not all(0 <= val <= 65535 for val in x):
             print("Error: x values must be between 0 and 65535")
             return False
         if not all(0 <= val <= 50 for val in y):
             print("Error: y values must be between 0 and 50 Gy")
             return False
+            
         return True
-    
+        
     # Add enum values as function attributes
     for mode in ProcessingMode:
         setattr(_process_values, mode.name, mode)
@@ -94,44 +121,13 @@ class CurveFitter:
         array-like
             values computed by the exponential function 
         """
-    
+        if b == 0:
+            raise ValueError("Parameter 'b' must not be zero, as this would result in a constant function.")
         x_scaled = (x - np.min(x)) / (np.max(x) - np.min(x))  # Normalize x
         exp_component = np.exp(np.clip(b * x_scaled, -700, 700))  # Clip the exponent range
     
         return a * exp_component + c
 
-    def _exponential_with_offset(self, x, a, b, c):
-        """
-        Function representing an exponential with an offset and with scaling and overflow control.
-        
-        Parameters:
-        -----------
-        x : array-like
-            values on x axis 
-        a, b, c : float
-            parameters of the exponential function
-        
-            
-        Returns:
-        --------
-        array-like
-            values computed by the exponential function 
-        
-        Raises:
-        -------
-        ValueError
-            If b == 0, since the function would become constant and not exponential.
-        ------
-        Description: 
-            It computes an exponential decreasing function with an offset (a), 
-            a scaling factor (b) and a shift (c). 
-        """
-        
-        if b == 0:
-            raise ValueError("Parameter 'b' must not be zero, as this would result in a constant function.")
-        x_scaled = (x - np.min(x)) / (np.max(x) - np.min(x))  # Normalize x
-        exp_component = np.exp(np.clip(-b * x_scaled, -700, 700))  # Clip the exponent range
-        return c - a * exp_component
 
 
     def _double_exponential(self, x, a, b, c, d):
