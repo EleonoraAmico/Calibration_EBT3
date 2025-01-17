@@ -24,7 +24,7 @@ class CurveFitter:
             'combination_of_exponential': self._combination_of_exponential,
             '_generalized_rational': self._generalized_rational,
             'linear_decay': self._linear_decay,
-            'polynomial_scaling': self._polynomial_scaling,
+            'generalized_polynomial': self._generalized_polynomial,
             'log_function': self._log_function
         }
         
@@ -293,7 +293,7 @@ class CurveFitter:
         """
         return x - (a * x) / b
 
-    def _polynomial_scaling(self, x, a, b, r):
+    def _generalized_polynomial(self, x, a, b, r):
         """
         Function representing polynomial scaling.
     
@@ -313,7 +313,16 @@ class CurveFitter:
         array-like
             Output values computed as a * x + b * x**r.
         """
-        return a * x + b * x**r
+        if r < 0: 
+           # Check for invalid values
+           valid_input = (x != 0)
+           
+           if not np.all(valid_input):
+               warnings.warn(f"Invalid values found at x positions: {np.where(~valid_input)[0]}")
+           result = a * valid_input + b * valid_input ** r
+        else: 
+            result = a * x + b * x**r
+        return result
 
 
     def _log_function(self, x, a, b, c):
