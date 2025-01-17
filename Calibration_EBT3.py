@@ -20,9 +20,7 @@ class CurveFitter:
     def __init__(self):
         self.fitting_functions = {
             'exponential': self._exponential,
-            'exponential_difference': self._exponential_difference,
             'double_exponential': self._double_exponential,
-            'exponential_combination': self._exponential_combination,
             'rational': self._rational,
             'hyperbolic_growth': self._hyperbolic_growth,
             'rational_with_offset': self._rational_with_offset,
@@ -104,7 +102,41 @@ class CurveFitter:
     # Add enum values as function attributes
     for mode in ProcessingMode:
         setattr(_process_values, mode.name, mode)
+    
+    def _normalized_input(self, x):
+        """
+        Normalize the input array to a [0, 1] range.
+    
+        This internal function scales the input array `x` to prevent overflow issues 
+        when used in other computations. It ensures numerical stability by handling
+        edge cases like empty arrays or arrays with identical values.
+    
+        Parameters:
+        -----------
+        x : array-like
+            Input array to be normalized. Must not be empty.
+    
+        Returns:
+        --------
+        array-like
+            A normalized array scaled to the [0, 1] range. If all elements in `x` 
+            are identical, returns an array of zeros.
+    
+        Notes:
+        ------
+        This function is not intended for direct use by end users.
+        """
+        if len(x) == 0:
+            raise ValueError("Input array 'x' must not be empty.")
+        
+        if np.max(x) - np.min(x) == 0:
+            x_scaled = np.zeros_like(x)
+        else:
+            x_scaled = (x - np.min(x)) / (np.max(x) - np.min(x))
+        return x_scaled
 
+
+    
     def _exponential(self, x, a, b, c):
         """
         Exponential function with scaling and overflow control.
@@ -120,15 +152,25 @@ class CurveFitter:
         --------
         array-like
             values computed by the exponential function 
-        """
-        if len(x) == 0:
-            raise ValueError("Input array 'x' must not be empty.")
         
-        # Handle division by zero in normalization
-        if np.max(x) - np.min(x) == 0:
-            x_scaled = np.zeros_like(x)
-        else:
-            x_scaled = (x - np.min(x)) / (np.max(x) - np.min(x))
+        Raises:
+        -------
+
+        ValueError
+            If 'a' or 'b' are equal to zero, as this would result in a non-exponential trend.
+    
+        Description:
+        ------------
+        This function computes an exponential of the form:
+        
+            f(x) = a * exp(b * normalized_x) + c
+            
+        where `normalized_x` scales the input `x` to the range [0, 1] for numerical stability. 
+        To prevent overflow in the exponential computation, the exponent is clipped to the range [-700, 700].
+
+
+        """
+        x_scaled = self._normalized_input(x)
         if b == 0:
             raise ValueError("Parameter 'b' must not be zero, as this would result in a constant function.")
         if a == 0: 
@@ -138,77 +180,39 @@ class CurveFitter:
         return a * exp_component + c
 
 
-
-    def _double_exponential(self, x, a, b, c, d):
+    def _double_exponential(self, x, a, b, c, d, e, f):
         """
-        Sum of exponential function with scaling and overflow control.
+        Generalized double exponential function with scaling and overflow control.
         
         Parameters:
         -----------
         x : array-like
-            values on x axis 
+            Values on the x-axis.
         a, b, c, d : float
-            parameters of the double exponential function
+            Parameters of the exponential terms. Their values determine the behavior of the function:
+            - Positive values of a and b contribute positively.
+            - Negative values of c and d can introduce subtractive or balancing behavior.
             
         Returns:
         --------
         array-like
-            values computed by the sum of two exponential functions
+            Values computed as the sum of two exponential terms.
+            
+        Description:
+        ------------
+        This function computes a generalized double exponential function:
+            f(x) = a * exp(b * normalized_x + e) + c * exp(d * normalized_x + f)
+        where `normalized_x` scales the input `x` to the range [0, 1] for numerical stability.
         """
-        
-        x_scaled = (x - np.min(x)) / (np.max(x) - np.min(x))  # Normalize x
-        exp_component_one= np.exp(np.clip(b * x_scaled, -700, 700))  # Clip the exponent range
-        exp_component_two= np.exp(np.clip(d * x_scaled, -700, 700))  # Clip the exponent range
+        if any(param == 0 for param in (a, b, c, d)):
+            raise ValueError("Parameters 'a', 'b', 'c', and 'd' must not be zero.")
+    
+        x_scaled = self._normalized_input(x)
+        exp_component_one = np.exp(np.clip(b * x_scaled + e, -700, 700)) 
+        exp_component_two = np.exp(np.clip(d * x_scaled + f, -700, 700))
         return a * exp_component_one + c * exp_component_two
 
-
-    def _exponential_difference(self, x, a, b, c, d):
-        """
-        Subtraction of exponential terms with scaling and overflow control.
-        
-        Parameters:
-        -----------
-        x : array-like
-            values on x axis 
-        a, b, c, d : float
-            parameters of the exponential difference function
-            
-        Returns:
-        --------
-        array-like
-            values computed by the exponential difference function 
-         Raises:
-        -------
-
-        """
-        x_scaled = (x - np.min(x)) / (np.max(x) - np.min(x))  # Normalize x
-        # Add small epsilon to prevent underflow
-        eps = 1e-10
-        exp_component_one= np.exp(np.clip(a * x_scaled + b, -700, 700)) + eps # Clip the exponent range
-        exp_component_two= np.exp(np.clip(c * x_scaled + d, -700, 700)) + eps # Clip the exponent range
-        return exp_component_one - exp_component_two
-
-    def _exponential_combination(self, x, a, b, c, d):
-        """
-        Sum of exponentials with positive and negative exponents with scaling and overflow control.
-        
-        Parameters:
-        -----------
-        x : array-like
-            values on x axis 
-        a, b, c, d : float
-            parameters of the exponential difference function
-            
-        Returns:
-        --------
-        array-like
-            values computed by the exponential combination function 
-        """
-        x_scaled = (x - np.min(x)) / (np.max(x) - np.min(x))  # Normalize x
-        exp_component_one= np.exp(np.clip(a * b * x_scaled, -700, 700))  # Clip the exponent range
-        exp_component_two= np.exp(np.clip(-c * d * x_scaled, -700, 700))  # Clip the exponent range
-        
-        return c * exp_component_one + d * exp_component_two
+    
 
     def _rational(self, x, a, b, c):
         """
@@ -398,10 +402,7 @@ class CurveFitter:
         return result
 
     def polynomial_fit(self, x, y, max_degree=4):
-        
-        
-        
-        
+                
         """
         Find the best polynomial fit by testing different degrees
         
@@ -458,9 +459,6 @@ class CurveFitter:
                 })
         
         return best_mse, best_degree, best_coefficients, fitting_results
-         
-    
-    
     
     def print_fitting_results(self, fitting_results):
         """
@@ -517,7 +515,7 @@ class CurveFitter:
         # Add polynomial results to fitting_results
         fitting_results.extend(poly_fitting_results)
         
-        initial_guess = [1.0] * 4  # Adjust size based on your function parameters
+        initial_guess = [1.0] * 6  # Adjust size based on your function parameters
         
         from scipy.optimize import least_squares
         
