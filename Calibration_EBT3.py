@@ -9,6 +9,7 @@ import numpy as np
 from scipy.optimize import curve_fit
 from sklearn.metrics import mean_squared_error
 import enum
+import warnings
 
 class ProcessingMode(enum.Enum):
     PV = "PV"  # Pass-through values
@@ -325,32 +326,27 @@ class CurveFitter:
             Input values
         a, b, c : float
             Function parameters
-            
+                
         Returns:
         --------
         array-like
             Computed logarithmic values
         """
-        # Add small epsilon to prevent log(0)
         eps = 1e-10
+        x = np.asarray(x, dtype=float)
         
-        # Ensure arrays
-        x = np.asarray(x)
+        numerator = x + c
+        denominator = b + x
         
-        # Calculate numerator and denominator separately
-        numerator = x + c + eps
-        denominator = b + x + eps
+        # Single epsilon addition for numerical stability
+        ratio = (numerator + eps) / (denominator + eps)
         
         # Check for invalid values
         valid_mask = (numerator > 0) & (denominator > 0)
         
-        # if not np.all(valid_mask):
-        #     print(f"Warning: Invalid values found at x positions: {np.where(~valid_mask)[0]}")
-            
-        # Calculate ratio with epsilon to prevent division by zero
-        ratio = (numerator + eps) / (denominator + eps)
-        
-        # Calculate log with input validation
+        if not np.all(valid_mask):
+            warnings.warn(f"Invalid values found at x positions: {np.where(~valid_mask)[0]}")
+                
         result = np.full_like(x, np.nan, dtype=float)
         result[valid_mask] = np.log(ratio[valid_mask]) - a
         
