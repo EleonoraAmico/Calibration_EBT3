@@ -20,11 +20,8 @@ class CurveFitter:
     def __init__(self):
         self.fitting_functions = {
             'exponential': self._exponential,
-            'double_exponential': self._double_exponential,
-            'rational': self._rational,
-            'hyperbolic_growth': self._hyperbolic_growth,
-            'rational_with_offset': self._rational_with_offset,
-            'saturation_with_offset': self._saturation_with_offset,
+            'combination_of_exponential': self._combination_of_exponential,
+            '_generalized_rational': self._generalized_rational,
             'linear_decay': self._linear_decay,
             'polynomial_scaling': self._polynomial_scaling,
             'log_function': self._log_function
@@ -180,9 +177,9 @@ class CurveFitter:
         return a * exp_component + c
 
 
-    def _double_exponential(self, x, a, b, c, d, e, f):
+    def _combination_of_exponential(self, x, a, b, c, d, e, f):
         """
-        Generalized double exponential function with scaling and overflow control.
+        Generalized combination of exponential function with scaling and overflow control.
         
         Parameters:
         -----------
@@ -196,11 +193,11 @@ class CurveFitter:
         Returns:
         --------
         array-like
-            Values computed as the sum of two exponential terms.
+            Values computed as the sum or difference of two exponential terms.
             
         Description:
         ------------
-        This function computes a generalized double exponential function:
+        This function computes a generalized combination of exponential function:
             f(x) = a * exp(b * normalized_x + e) + c * exp(d * normalized_x + f)
         where `normalized_x` scales the input `x` to the range [0, 1] for numerical stability.
         """
@@ -214,108 +211,66 @@ class CurveFitter:
 
     
 
-    def _rational(self, x, a, b, c):
+    def _generalized_rational(self, x, a, b, c, d, e):
         """
-        Function representing a generalized rational function with scaling.
+        Generalized rational function with optional scaling, offset, and saturation behavior.
         
-    
         Parameters:
         -----------
         x : array-like
             Input values on the x-axis.
-        a : float
-            Offset term added to the numerator.
-        b : float
-            Scaling parameter applied to the input variable in the numerator.
-        c : float
-            Offset term added to the denominator.
-    
+        a, b : float
+            Parameters for the numerator (a + b * x).
+        c, d : float
+            Parameters for the denominator (c * x + d).
+        e : float
+            Offset added to the function output.
+        
         Returns:
         --------
         array-like
-            Output values computed as (a + b * x) / (x + c).
+            Output values computed as (a + b * x) / (c * x + d) + e.
         
-        Raises
-        ------
+        Raises:
+        -------
         ValueError
-            If any value in x is equal to c, which would make the denominator zero
-    
+            If the denominator is zero for any input value.
+            If `c = 0`, as this would result in a linear or constant function rather than rational behavior.
+        
         Description:
         ------------
-        This function computes a rational relationship between input \(x\),
-        with an offset \(a\) in the numerator, a scaling factor \(b\) applied to \(x\) in the numerator,
-        and a shift \(c\) in the denominator. 
-        The additional parameter \(b\) allows for more flexible control 
-        over the rate of growth in the numerator compared to simpler rational functions.
-        x cannot equal c as this would result in division by zero.
+        This function computes a generalized rational relationship of the form:
+        
+            f(x) = (a + b * x) / (c * x + d) + e
+        The behavior of the function varies depending on the parameter values:
+    
+        1. **Pure offset (constant function) and linear function:**
+           -c = 0 is forbitten because it leads to a constant denominator, reducing the function to linear or offset behavior.
+    
+        2. **Hyperbolic growth:**
+           - If  a = 0,  b != 0, and  d = 1, the function behaves like a saturation curve:
+             f(x) = (b * x) / (c * x + 1) + e.
+    
+        3. **Rational function with offset:**
+           - If  b = 1  and  e = 0 , the function becomes:
+             f(x) = (a + x) / (c * x + d).
+    
+        4. **Fully generalized rational behavior:**
+           - For arbitrary values of  a, b, c, d and  e, the function exhibits
+             rational growth or decline based on the interaction between the numerator
+             and denominator.
+            
         """
-        denominator = x - c
+        
+        if c == 0:
+            raise ValueError("Parameter 'c' must not be zero. This would result in constant or linear behavior, not a rational function.")
+        
+        denominator = c * x + d
         if np.any(denominator == 0):
             raise ValueError("Invalid input: denominator would be zero")
-        return (a * x + b) / denominator
+        
+        return (a + b * x) / denominator + e
 
-
-    def _hyperbolic_growth(self, x, a, b):
-        """
-        Function representing a saturation curve.
-    
-        Parameters:
-        -----------
-        x : array-like
-            Input values on the x-axis.
-        a : float
-            Scaling parameter for the numerator.
-        b : float
-            Scaling parameter for the denominator.
-    
-        Returns:
-        --------
-        array-like
-            Output values computed as (a * x) / (b * x + 1).
-        """
-        return (a * x) / (b * x + 1)
-
-    def _rational_with_offset(self, x, a, e):
-        """
-        Function representing a rational function with an offset.
-    
-        Parameters:
-        -----------
-        x : array-like
-            Input values on the x-axis.
-        a : float
-            Offset term added to the numerator.
-        e : float
-            Offset term added to the denominator.
-    
-        Returns:
-        --------
-        array-like
-            Output values computed as (a + x) / (x + e).
-        """
-        return (a + x) / (x + e)
-
-    def _saturation_with_offset(self, x, b, a, c):
-        """
-        Function representing a saturating curve with an offset.
-    
-        Parameters:
-        -----------
-        x : array-like
-            Input values on the x-axis.
-        b : float
-            Scaling parameter for the numerator.
-        a : float
-            Scaling parameter for the denominator.
-        c : float
-            Offset added to the function output.
-    
-        Returns:
-        --------
-        array-like
-            Output values computed as (b * x) / (a + x) + c.
-        """
-        return (b * x) / (a + x) + c
 
     def _linear_decay(self, x, a, b):
         """
