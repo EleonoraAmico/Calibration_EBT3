@@ -9,6 +9,7 @@ import numpy as np
 from Calibration_EBT3 import CurveFitter
 import pytest
 from hypothesis import given, strategies as st
+from hypothesis import given, assume
 
 # Tests for individual curve functions
 def test_exponential_increasing_basic():
@@ -429,75 +430,240 @@ def test_generalized_rational_edge_cases():
         result = fitter._generalized_rational(x, a=1e-6, b=1e-6, c=1e-6, d=1e-6, e=1e-6)
         assert np.all(np.isfinite(result)), "Function should handle small parameters"
 
-
-fitter = CurveFitter()
-    
-def test_basic_behavior():
-    """Test basic function behavior with typical inputs"""
-    x = np.array([1.0, 2.0, 3.0])
-    result = fitter._log_function(x, a=1.0, b=1.0, c=1.0)
-    
-    # Check output type and shape
-    assert isinstance(result, np.ndarray)
-    assert result.shape == x.shape
-    
-    # Check if results are finite
-    assert np.all(np.isfinite(result))
-    
-    # Verify the function formula
-    expected = np.log((x + 1.0 + 1e-10)/(1.0 + x + 1e-10)) - 1.0
-    np.testing.assert_array_almost_equal(result, expected)
-
-def test_edge_cases():
-    """Test behavior with edge cases"""
-    # Test with zero
-    x = np.array([0.0])
-    result = fitter._log_function(x, a=1.0, b=1.0, c=1.0)
-    assert np.isfinite(result)  # Should handle zero gracefully
-    
-    # Test with very large values
-    x = np.array([1e6])
-    result = fitter._log_function(x, a=1.0, b=1.0, c=1.0)
-    assert np.isfinite(result)  # Should handle large values
-
-def test_parameter_sensitivity():
-    """Test sensitivity to parameter changes"""
-    x = np.array([1.0])
-    
-    # Test different parameter combinations
-    result1 = fitter._log_function(x, a=1.0, b=1.0, c=1.0)
-    result2 = fitter._log_function(x, a=2.0, b=1.0, c=1.0)
-    assert result1 != result2  # Should be sensitive to 'a' parameter
-    
-    result3 = fitter._log_function(x, a=1.0, b=2.0, c=1.0)
-    assert result1 != result3  # Should be sensitive to 'b' parameter
-    
-    result4 = fitter._log_function(x, a=1.0, b=1.0, c=2.0)
-    assert result1 != result4  # Should be sensitive to 'c' parameter
-
-def test_input_types():
-    """Test different input types"""
-    # Test list input
-    result = fitter._log_function([1.0, 2.0], a=1.0, b=1.0, c=1.0)
-    assert isinstance(result, np.ndarray)
-    
-    # Test single float input
-    result = fitter._log_function(1.0, a=1.0, b=1.0, c=1.0)
-    assert isinstance(result, np.ndarray)
-
-def test_log_function_warnings():
-    """Test that appropriate warnings are raised for invalid values"""
+def test_log_function():
     fitter = CurveFitter()
     
-    # Test with negative values that should trigger warning
-    x = np.array([-1.0, -2.0])
-    
-    # Use pytest's warning catching mechanism
-    with pytest.warns(UserWarning, match="Invalid values found at x positions:"):
-        result = fitter._log_function(x, a=1.0, b=1.0, c=2.0)
+    def test_basic_behavior():
+        """Test basic function behavior with typical inputs"""
+        x = np.array([1.0, 2.0, 3.0])
+        result = fitter._log_function(x, a=1.0, b=1.0, c=1.0)
         
-    # Verify the result is NaN for invalid values
-    assert np.all(np.isnan(result))
+        # Check output type and shape
+        assert isinstance(result, np.ndarray)
+        assert result.shape == x.shape
+        
+        # Check if results are finite
+        assert np.all(np.isfinite(result))
+        
+        # Verify the function formula
+        expected = np.log((x + 1.0 + 1e-10)/(1.0 + x + 1e-10)) - 1.0
+        np.testing.assert_array_almost_equal(result, expected)
+    
+    def test_edge_cases():
+        """Test behavior with edge cases"""
+        # Test with zero
+        x = np.array([0.0])
+        result = fitter._log_function(x, a=1.0, b=1.0, c=1.0)
+        assert np.isfinite(result)  # Should handle zero gracefully
+        
+        # Test with very large values
+        x = np.array([1e6])
+        result = fitter._log_function(x, a=1.0, b=1.0, c=1.0)
+        assert np.isfinite(result)  # Should handle large values
+    
+    def test_parameter_sensitivity():
+        """Test sensitivity to parameter changes"""
+        x = np.array([1.0])
+        
+        # Test different parameter combinations
+        result1 = fitter._log_function(x, a=1.0, b=1.0, c=1.0)
+        result2 = fitter._log_function(x, a=2.0, b=1.0, c=1.0)
+        assert result1 != result2  # Should be sensitive to 'a' parameter
+        
+        result3 = fitter._log_function(x, a=1.0, b=2.0, c=1.0)
+        assert result1 != result3  # Should be sensitive to 'b' parameter
+        
+        result4 = fitter._log_function(x, a=1.0, b=1.0, c=2.0)
+        assert result1 != result4  # Should be sensitive to 'c' parameter
+    
+    def test_input_types():
+        """Test different input types"""
+        # Test list input
+        result = fitter._log_function([1.0, 2.0], a=1.0, b=1.0, c=1.0)
+        assert isinstance(result, np.ndarray)
+        
+        # Test single float input
+        result = fitter._log_function(1.0, a=1.0, b=1.0, c=1.0)
+        assert isinstance(result, np.ndarray)
+        
+    def test_log_function_warnings():
+        """Test that appropriate warnings are raised for invalid values"""
+        fitter = CurveFitter()
+        
+        # Test with negative values that should trigger warning
+        x = np.array([-1.0, -2.0])
+        
+        # Use pytest's warning catching mechanism
+        with pytest.warns(UserWarning, match="Invalid values found at x positions:"):
+            result = fitter._log_function(x, a=1.0, b=1.0, c=2.0)
+        
+        # Verify the result is NaN for invalid values
+        assert np.all(np.isnan(result))
+        
+def test_generalized_polynomial():
+    """Test suite for polynomial scaling function"""
+    
+    fitter=CurveFitter()
+
+    def test_zero_input():
+        """
+        GIVEN: Zero input with various parameters
+        WHEN: The polynomial scaling function is applied
+        THEN: The output should be zero
+        """
+        assert fitter._generalized_polynomial(0, 1, 1, 2) == 0
+        assert fitter._generalized_polynomial(0, -1, 5, 3) == 0
+        assert fitter._generalized_polynomial(0, 10, -3, 4) == 0
+
+    def test_unity_scaling():
+        """
+        GIVEN: Input x=1 with various parameters
+        WHEN: The polynomial scaling function is applied
+        THEN: The output should be the sum of parameters a and b
+        """
+        assert fitter._generalized_polynomial(1, 2, 3, 2) == 5  # 2*1 + 3*1^2
+        assert fitter._generalized_polynomial(1, -1, 1, 3) == 0  # -1*1 + 1*1^3
+
+    @given(x=st.floats(min_value=-1e3, max_value=1e3),
+           a=st.floats(min_value=-1e2, max_value=1e2),
+           b=st.floats(min_value=-1e2, max_value=1e2))
+    def test_linear_case(x, a, b):
+        """
+        GIVEN: Random inputs with r=1
+        WHEN: The polynomial scaling function is applied
+        THEN: The function should behave linearly with slope (a+b)
+        """
+        assume(not np.isnan(x) and not np.isnan(a) and not np.isnan(b))
+        result = fitter._generalized_polynomial(x, a, b, 1)
+        expected = x * (a + b)
+        assert np.abs(result - expected) < 1e-10
+    
+    @given(x=st.floats(min_value=0, max_value=1e3), # Only need positive x since we'll test symmetry
+           a=st.floats(min_value=-1e2, max_value=1e2),
+           b=st.floats(min_value=-1e2, max_value=1e2))
+
+    def test_parabolic_symmetry( x, a, b):
+        """
+        GIVEN: Random positive inputs with r=2
+        WHEN: The polynomial scaling function is evaluated at x and -x
+        THEN: The function should display parabolic symmetry properties:
+              - If a=0: f(-x) = f(x) (symmetric about y-axis)
+              - If b=0: f(-x) = -f(x) (antisymmetric about origin)
+              - In general: f(-x) = (-a)x + b*x^2
+        """
+        assume(not np.isnan(x) and not np.isnan(a) and not np.isnan(b))
+        
+        # Evaluate function at x and -x
+        f_x = fitter._generalized_polynomial(x, a, b, 2)    # a*x + b*x^2
+        f_minus_x = fitter._generalized_polynomial(-x, a, b, 2)  # a*(-x) + b*(-x)^2
+        
+        # Test symmetry properties
+        if abs(a) < 1e-10:  # When a ≈ 0
+            # Pure quadratic should be symmetric about y-axis
+            assert np.abs(f_x - f_minus_x) < 1e-10
+        elif abs(b) < 1e-10:  # When b ≈ 0
+            # Pure linear should be antisymmetric about origin
+            assert np.abs(f_x + f_minus_x) < 1e-10
+        else:
+            # General case: f(-x) = -ax + bx^2
+            expected_symmetry = -a*x + b*x**2
+            assert np.abs(f_minus_x - expected_symmetry) < 1e-10
+    
+    @given(x=st.floats(min_value=1e3, max_value=1e3).filter(lambda x: x != 0),
+           a=st.floats(min_value=-1e2, max_value=1e2),
+           b=st.floats(min_value=-1e2, max_value=1e2),
+           r=st.floats(min_value=0, max_value=1e2))
+    def test_polynomial_case(x, a, b, r):
+        """
+        GIVEN: Random inputs
+        WHEN: The polynomial scaling function is applied
+        THEN:  The output should be correctly computed for each element
+        """
+        assume(not np.isnan(x) and not np.isnan(a) and not np.isnan(b) and not np.isnan(r))
+        result = fitter._generalized_polynomial(x, a, b, r)
+        expected = a*x + b*x**r
+        assert np.abs(result - expected) < 1e-10
+    
+    def test_polynomial_warning_negative_r():
+        """Test warning generation for zero values with negative power
+        
+        GIVEN: Input array containing zero and negative power r
+        WHEN: The generalized polynomial function is called  
+        THEN: A warning is raised for the zero value positions
+        """
+        x = np.array([1.0, 0.0, 3.0])
+        a, b = 2.0, 3.0
+        r = -2.0
+        
+        with pytest.warns(Warning) as warning_info:
+            result = fitter._generalized_polynomial(x, a, b, r)
+            assert len(warning_info) == 1
+            assert "Invalid values found at x positions: [1]" in str(warning_info[0].message)
+        
+    def test_polynomial_calculation_negative_r():
+        """Test polynomial calculation with negative power on valid inputs
+        
+        GIVEN: Non-zero input values and negative power r
+        WHEN: The generalized polynomial function is called
+        THEN: The function correctly computes a*x + b*x^r
+        """
+        x = np.array([1.0, 2.0, 3.0])
+        a, b = 2.0, 3.0
+        r = -2.0
+        
+        # Expected result: 2x + 3x^(-2)
+        expected = 2.0 * x + 3.0 * x**(-2.0)
+        
+        result = fitter.generalized_polynomial(x, a, b, r)
+        
+        np.testing.assert_array_almost_equal(result, expected)
+    
+    def test_polynomial_array_shape():
+        """Test output shape matches input shape
+        
+        GIVEN: Input array of specific shape
+        WHEN: The generalized polynomial function is called
+        THEN: The output array has the same shape as input
+        """
+        x = np.array([[1.0, 2.0], [3.0, 4.0]])
+        a, b = 2.0, 3.0
+        r = 2.0
+        
+        result = fitter.generalized_polynomial(x, a, b, r)
+        
+        assert result.shape == x.shape
+
+
+    def test_array_input():
+        """
+        GIVEN: Array input
+        WHEN: The polynomial scaling function is applied
+        THEN: The output should be correctly computed for each element
+        """
+        x = np.array([0, 1, 2])
+        result = fitter._generalized_polynomial(x, 1, 2, 2)
+        expected = np.array([0, 3, 10])  # [1*0 + 2*0^2, 1*1 + 2*1^2, 1*2 + 2*2^2]
+        np.testing.assert_array_almost_equal(result, expected)
+
+    @pytest.mark.parametrize("x,a,b,r,expected", [
+        (2, 1, 1, 2, 6),    # 1*2 + 1*2^2
+        (3, 2, -1, 2, -3),  # 2*3 + (-1)*3^2
+        (-1, 1, 1, 3, -2)   # 1*(-1) + 1*(-1)^3
+    ])
+    def test_specific_values(x, a, b, r, expected):
+        """
+        GIVEN: Specific input values and parameters
+        WHEN: The polynomial scaling function is applied
+        THEN: The output should match pre-calculated results
+        """
+        result = fitter._generalized_polynomial(x, a, b, r)
+        assert abs(result - expected) < 1e-10
+
+
+        
+        
+        
+        
 
 
 
