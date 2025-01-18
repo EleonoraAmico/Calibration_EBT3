@@ -22,8 +22,7 @@ class CurveFitter:
         self.fitting_functions = {
             'exponential': self._exponential,
             'combination_of_exponential': self._combination_of_exponential,
-            '_generalized_rational': self._generalized_rational,
-            'linear_decay': self._linear_decay,
+            'generalized_rational': self._generalized_rational,
             'generalized_polynomial': self._generalized_polynomial,
             'log_function': self._log_function
         }
@@ -55,7 +54,7 @@ class CurveFitter:
         else:
             raise ValueError(f"Unknown processing mode: {mode}")
             
-    
+
     def _validate_data(self, x, y):
         """
         Validates input data ranges.
@@ -66,36 +65,46 @@ class CurveFitter:
             Input x values that must be between 0 and 65535
         y : array-like
             Input y values that must be between 0 and 50 Gy
-            
+        
         Returns:
         --------
         bool
             True if data is valid, False otherwise
-            
-        Raises:
-        -------
-        TypeError
-            If either x or y is not provided
-        ValueError
-            If x or y is empty or None
         """
-        # Check if inputs are provided and not None
-        if x is None or y is None:
-            raise ValueError("Input arrays cannot be None")
+        if x is None:
+            warnings.warn("x array cannot be None", UserWarning)
+            return False
+            
+        if y is None:
+            warnings.warn("y array cannot be None", UserWarning)
+            return False
+            
+        if len(x) == 0:
+            warnings.warn("x array cannot be empty", UserWarning)
+            return False
+            
+        if len(y) == 0:
+            warnings.warn("y array cannot be empty", UserWarning)
+            return False
+            
+        try:
+            x_array = np.asarray(x)
+            y_array = np.asarray(y)
+        except Exception as e:
+            warnings.warn(f"Could not convert inputs to numpy arrays: {str(e)}", UserWarning)
+            return False
+            
+        if not (0 <= x_array.all() <= 65535):
+            warnings.warn("x values must be between 0 and 65535", UserWarning)
+            return False
+            
+        if not (0 <= y_array.all() <= 50):
+            warnings.warn("y values must be between 0 and 50 Gy", UserWarning)
+            return False
         
-        # Check if inputs are not empty
-        if len(x) == 0 or len(y) == 0:
-            raise ValueError("Input arrays cannot be empty")
-            
-        # Check value ranges
-        if not all(0 <= val <= 65535 for val in x):
-            print("Error: x values must be between 0 and 65535")
-            return False
-        if not all(0 <= val <= 50 for val in y):
-            print("Error: y values must be between 0 and 50 Gy")
-            return False
-            
         return True
+            
+
         
     # Add enum values as function attributes
     for mode in ProcessingMode:
@@ -273,26 +282,6 @@ class CurveFitter:
         return (a + b * x) / denominator + e
 
 
-    def _linear_decay(self, x, a, b):
-        """
-        Function representing a linear decay.
-    
-        Parameters:
-        -----------
-        x : array-like
-            Input values on the x-axis.
-        a : float
-            Scaling parameter for the numerator.
-        b : float
-            Scaling parameter for the denominator.
-    
-        Returns:
-        --------
-        array-like
-            Output values computed as x - (a * x) / b.
-        """
-        return x - (a * x) / b
-
     def _generalized_polynomial(self, x, a, b, r):
         """
         Function representing polynomial scaling.
@@ -374,8 +363,10 @@ class CurveFitter:
         Returns:
         dict: Dictionary containing fitting results for all tested polynomials
         """
+
         if not self._validate_data(x, y):
             return None, None, None, None
+
 
         fitting_results = []
         best_mse = float('inf')
