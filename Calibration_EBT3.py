@@ -10,6 +10,7 @@ from scipy.optimize import curve_fit
 from sklearn.metrics import mean_squared_error
 import enum
 import warnings
+from sklearn.linear_model import Ridge
 
 class ProcessingMode(enum.Enum):
     PV = "PV"  # Pass-through values
@@ -350,66 +351,106 @@ class CurveFitter:
         
         return result
 
-    def polynomial_fit(self, x, y, max_degree=4):
-                
+    
+    def polynomial_fit(self, x, y, xerr=None, max_degree=4, alpha=1.0):
         """
-        Find the best polynomial fit by testing different degrees
+        Find the best polynomial fit using multiple criteria to avoid overfitting
         
         Parameters:
         x: array-like, data for the x-axis
         y: array-like, data for the y-axis
+        xerr: array-like, measurement errors
         max_degree: int, maximum degree of the polynomial to test
+        alpha: float, regularization parameter for coefficient comparison
         
         Returns:
-        dict: Dictionary containing fitting results for all tested polynomials
+        tuple: (best_mse, best_degree, best_coefficients, fitting_results)
         """
-
         if not self._validate_data(x, y):
             return None, None, None, None
-
-
+    
         fitting_results = []
-        best_mse = float('inf')
-        best_coefficients = None
-        best_degree = 0
+        best_fit = {
+            'mse': float('inf'),
+            'score': float('inf'),  # Combined score for selection
+            'degree': 0,
+            'coefficients': None
+        }
+    
+        # Normalize data for numerical stability
+        x_mean, x_std = np.mean(x), np.std(x)
+        x_norm = (x - x_mean) / x_std
         
         for degree in range(1, max_degree + 1):
             try:
-                coefficients = np.polyfit(x, y, degree)
-                coefficients = [c if abs(c) >= 1e-08 else 0 for c in coefficients]
+                # Fit with normalized x
+                coefficients_norm = np.polyfit(x_norm, y, degree)
+                
+                # Convert coefficients back to original scale
+                p_norm = np.poly1d(coefficients_norm)
+                x_test = np.linspace(min(x), max(x), 100)
+                y_test = p_norm((x_test - x_mean) / x_std)
+                coefficients = np.polyfit(x_test, y_test, degree)
+                
                 p = np.poly1d(coefficients)
                 y_pred = p(x)
+                
+                # Calculate various metrics
                 mse = mean_squared_error(y, y_pred)
+                chi2 = None
+                if xerr is not None:
+                    residuals = y - y_pred
+                    chi2 = np.sum((residuals / xerr) ** 2)
+                
+                dof = len(x) - (degree + 1)
+                
+                # Calculate coefficient ratios
+                coeff_ratio = np.abs(coefficients[0]) / np.max(np.abs(coefficients[1:])) if len(coefficients) > 1 else np.inf
+                
+                # Modified score that combines multiple criteria:
+                # 1. MSE for fit quality
+                # 2. Coefficient ratio for polynomial behavior
+                # 3. Penalty for higher degrees
+                # 4. AIC-like term for model complexity
+                complexity_penalty = degree * np.log(len(x))
+                score = (mse * 
+                        (1 + complexity_penalty / len(x)) * 
+                        (1 + 1/coeff_ratio) * 
+                        (1 + alpha * degree/max_degree))
                 
                 fitting_results.append({
                     'function': f'polynomial_degree_{degree}',
                     'mse': mse,
-                    'valid_covariance': True,
-                    'success': True,
-                    'error_message': None,
-                    'degree': degree,
+                    'score': score,
                     'coefficients': coefficients,
-                    'polynomial': p
+                    'degree': degree,
+                    'polynomial': p,
+                    'chi2': chi2,
+                    'dof': dof,
+                    'coeff_ratio': coeff_ratio
                 })
-                
-                if mse < best_mse:
-                    best_mse = mse
-                    best_coefficients = coefficients
-                    best_degree = degree
-                    
+    
+                # Update best fit if this degree has a better score
+                if score < best_fit['score']:
+                    best_fit.update({
+                        'mse': mse,
+                        'score': score,
+                        'degree': degree,
+                        'coefficients': coefficients
+                    })
+    
             except Exception as e:
                 fitting_results.append({
                     'function': f'polynomial_degree_{degree}',
                     'mse': None,
-                    'valid_covariance': False,
                     'success': False,
-                    'error_message': str(e),
-                    'degree': degree,
-                    'coefficients': None,
-                    'polynomial': None
+                    'error_message': str(e)
                 })
-        
-        return best_mse, best_degree, best_coefficients, fitting_results
+    
+        return (best_fit['mse'], best_fit['degree'], 
+                best_fit['coefficients'], fitting_results)
+
+
     
     def print_fitting_results(self, fitting_results):
         """
