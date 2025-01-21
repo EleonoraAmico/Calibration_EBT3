@@ -69,7 +69,10 @@ class CurveFitter:
                 )
                 # Filter positive values
                 x_values = x_values[x_values > 0]
+            if x_zero == 0:
+                raise ValueError("x at y = 0 must be higher than 0")
             return -np.log10(x_values / x_zero)
+            
         else:
             raise ValueError(f"Unknown processing mode: {mode}")
             
