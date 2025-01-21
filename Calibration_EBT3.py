@@ -42,8 +42,18 @@ class CurveFitter:
         """
         if mode == ProcessingMode.PV:
             return x_values
+        
         elif mode == ProcessingMode.OD:
+            if np.any(x_values == 0):
+                warnings.warn(
+                    "Some values in x_values are 0. These values will be ignored "
+                    "since the logarithm cannot be computed for zero.",
+                    UserWarning
+                )
+                # Filter positive values
+                x_values = x_values[x_values > 0]
             return np.log10(65535 / x_values)
+        
         elif mode == ProcessingMode.NET_OD:
             if y_values is None:
                 raise ValueError("y_values are required for NET_OD mode")
@@ -51,6 +61,14 @@ class CurveFitter:
             if 0 not in y_values:
                 raise ValueError("y_values must contain 0 for NET_OD mode")
             x_zero = x_values[np.where(y_values == 0)[0][0]]
+            if np.any(x_values == 0):
+                warnings.warn(
+                    "Some values in x_values are 0. These values will be ignored "
+                    "since the logarithm cannot be computed for zero.",
+                    UserWarning
+                )
+                # Filter positive values
+                x_values = x_values[x_values > 0]
             return -np.log10(x_values / x_zero)
         else:
             raise ValueError(f"Unknown processing mode: {mode}")
@@ -378,7 +396,7 @@ class CurveFitter:
         }
     
         # Normalize data for numerical stability
-        x_mean, x_std = np.mean(x), np.std(x)
+        x_mean, x_std = np.nanmean(x), np.nanstd(x)
         x_norm = (x - x_mean) / x_std
         
         for degree in range(1, max_degree + 1):
@@ -452,7 +470,7 @@ class CurveFitter:
 
 
     
-    def print_fitting_results(self, fitting_results):
+    def _print_fitting_results(self, fitting_results):
         """
         Print a formatted summary of all fitting results.
         
