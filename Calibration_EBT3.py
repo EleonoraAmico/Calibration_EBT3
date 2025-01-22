@@ -125,12 +125,7 @@ class CurveFitter:
             return False
         
         return True
-            
 
-        
-    # Add enum values as function attributes
-    for mode in ProcessingMode:
-        setattr(_process_values, mode.name, mode)
     
     def _normalized_input(self, x):
         """
@@ -389,7 +384,34 @@ class CurveFitter:
         """
         if not self._validate_data(x, y):
             return None, None, None, None
-    
+        
+        if len(x) - (max_degree) <= 0:
+            raise ValueError ("Number of points must be higher than max_degree")
+            
+    # Check for constant x or y values
+        if np.all(y == y[0]):
+            # For constant y, return degree 0 polynomial with that constant
+            constant_coeff = np.array([y[0]])
+            fitting_results = [{
+                'function': 'constant_y',
+                'mse': 0,
+                'score': 0,
+                'coefficients': constant_coeff,
+                'degree': 0,
+                'polynomial': np.poly1d(constant_coeff),
+                'chi2': 0 if xerr is not None else None,
+                'dof': len(x) - 1,
+                'coeff_ratio': float('inf')
+            }]
+            return 0, 0, constant_coeff, fitting_results
+        
+        if np.all(x == x[0]):
+            # Cannot fit polynomial if x is constant - undefined
+            raise ValueError("Cannot fit polynomial when all x values are constant")
+            
+        
+        
+            
         fitting_results = []
         best_fit = {
             'mse': float('inf'),
@@ -401,6 +423,10 @@ class CurveFitter:
         # Normalize data for numerical stability
         x_mean, x_std = np.nanmean(x), np.nanstd(x)
         x_norm = (x - x_mean) / x_std
+        
+        if max_degree > 4: 
+            warnings.warn("Polynomial degrees higher than 4 might lead to overfitting and numerical instability.")
+            
         
         for degree in range(1, max_degree + 1):
             try:
@@ -438,7 +464,7 @@ class CurveFitter:
                         (1 + complexity_penalty / len(x)) * 
                         (1 + 1/coeff_ratio) * 
                         (1 + alpha * degree/max_degree))
-                
+                print('score', score)
                 fitting_results.append({
                     'function': f'polynomial_degree_{degree}',
                     'mse': mse,
@@ -484,7 +510,7 @@ class CurveFitter:
         """
         print("\nFitting Results Summary:")
         print("-" * 80)
-        print(f"{'Function Name':<30} {'MSE':<15} {'Valid Covariance':<20} {'Success'}")
+        print(f"{'Function Name':<30} {'MSE':<15} ") #{'Valid Covariance':<20} {'Success'}
         print("-" * 80)
         
         for result in fitting_results:
@@ -499,7 +525,7 @@ class CurveFitter:
             # Format MSE value
             mse_str = f"{result['mse']:.2e}" if result['mse'] is not None else "Failed"
             
-            print(f"{displayed_name:<30} {mse_str:<15} {str(result['valid_covariance']):<20} {result['success']}")
+            print(f"{displayed_name:<30} {mse_str:<15} ") #{str(result['valid_covariance']):<20} {result['success']}
            
     def calculate_best_fit(self, x, y, mode=ProcessingMode.PV, print_results=False):
         """
@@ -578,7 +604,7 @@ class CurveFitter:
                 })
         
         if print_results:
-            self.print_fitting_results(fitting_results)
+            self._print_fitting_results(fitting_results)
             
         if best_func is None or best_popt is None:
                 print("No valid fit found")
