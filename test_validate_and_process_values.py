@@ -301,6 +301,14 @@ def test_unknown_processing_mode():
     with pytest.raises(ValueError, match="Unknown processing mode"):
         fitter._process_values(x_values, mode="invalid_mode") #Intentionally invalid mode
 
+def test_validate_data_invalid_input_types():
+    fitter = CurveFitter()
+    # Test with invalid input types
+    x = [1, 2, 'a']  #List with a string
+    y = [1, 2, 3]
+    with pytest.warns(UserWarning, match="Could not convert inputs to numpy arrays"):
+        assert not fitter._validate_data(x,y)
+
         
     
     
