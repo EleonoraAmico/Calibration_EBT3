@@ -159,7 +159,44 @@ def test_process_values_od_mode():
     
     result = fitter._process_values(x, mode=ProcessingMode.OD)
     np.testing.assert_array_almost_equal(result, expected)
-
+        
+def test_process_values_od_mode_edge_case_x():
+    """Tests that process_values correctly calculates optical density
+        for edge case
+    
+    GIVEN: A CurveFitter instance and input array
+    WHEN: The process_values method is called in OD mode
+    THEN: The method returns log10(65535/x) for each value
+    """
+    fitter = CurveFitter()
+    x = np.linspace(0, 65535, 20)
+    x_PV = fitter._process_values(x, mode=ProcessingMode.PV)
+    with pytest.warns(UserWarning, match="Some values in x_values are 0. These values will be ignored "
+                      "since the logarithm cannot be computed for zero."):
+        x_OD = fitter._process_values(x_PV, mode=ProcessingMode.OD)
+    x_PV = x_PV[x_PV > 0]
+    expected = np.log10(65535/x_PV)
+    np.testing.assert_array_almost_equal(x_OD, expected)
+    
+def test_process_values_od_mode_edge_case_inverse_function():
+    """Tests that process_values correctly calculates optical density 
+        for edge case
+    
+    GIVEN: A CurveFitter instance and input array with edges cases 
+    WHEN: The process_values method is called in OD mode
+    THEN: x computed by the inverse of the mode OD and the pixel values data are
+    the same 
+    """
+    fitter = CurveFitter()
+    x = np.linspace(0, 65535, 20)
+    x_PV = fitter._process_values(x, mode=ProcessingMode.PV)
+    with pytest.warns(UserWarning, match="Some values in x_values are 0. These values will be ignored "
+                      "since the logarithm cannot be computed for zero."):
+        x_OD = fitter._process_values(x_PV, mode=ProcessingMode.OD)
+    x_PV = x_PV[x_PV > 0]
+    expected = (10**x_OD)*x_PV**2/65535
+    np.testing.assert_array_almost_equal(x_PV, expected)
+    
 def test_process_values_net_od_mode():
     """Tests that process_values correctly calculates net optical density
     
@@ -201,3 +238,56 @@ def test_process_values_net_od_no_zero():
     
     with pytest.raises(ValueError, match="y_values must contain 0 for NET_OD mode"):
         fitter._process_values(x, y, mode=ProcessingMode.NET_OD)
+        
+
+def test_process_values_net_od_no_edge_case():
+    """Tests that process_values raises error when no zero point exists in NET_OD mode
+    
+    GIVEN: A CurveFitter instance and y values without a zero point
+    WHEN: The process_values method is called in NET_OD mode
+    THEN: The method raises a ValueError
+    """
+    fitter = CurveFitter()
+    x = np.linspace(0, 65535, 20)
+    a = 50/65535
+    y = - a * x + 50
+    with pytest.warns(UserWarning, match="Some values in x_values are 0. These values will be ignored "
+                      "since the logarithm cannot be computed for zero."):
+        x_net_OD = fitter._process_values(x, y, mode=ProcessingMode.NET_OD)
+    
+    x_zero = x[np.where(y == 0)[0][0]]
+    x = x [x > 0]
+    expected =  -np.log10(x / x_zero)
+    np.testing.assert_array_almost_equal(expected, x_net_OD)
+    
+def test_process_values_net_od_x_zero():
+    """Tests that process_values raises a ValueError when x is equal to 0 for y equal to 0 in NET_OD mode.
+    
+    GIVEN: A CurveFitter instance and x with point zero 
+    WHEN: The process_values method is called in NET_OD mode
+    THEN: The method raises a ValueError
+    """
+    fitter = CurveFitter()
+    x = np.linspace(0, 65535, 20)
+    a = 50/65535
+    y = a * x  # Zero point
+    
+    with pytest.warns(UserWarning, match="Some values in x_values are 0. These values will be ignored "
+                      "since the logarithm cannot be computed for zero."):
+        with pytest.raises(ValueError, match="x at y = 0 must be higher than 0"):
+            fitter._process_values(x, y, mode=ProcessingMode.NET_OD)
+
+def test_non_finite_values():
+    """Tests that process_values raises error when some points are nan o inf
+    GIVEN: Data containing NaN or inf values
+    WHEN: validate_data is called
+    THEN: Should handle or reject non-finite values appropriately
+    """
+    fitter = CurveFitter()
+    x = np.array([1, 2, np.nan, 4, 5])
+    y = np.array([1, 2, 3, np.inf, 5])
+    with pytest.warns(UserWarning):
+        fitter._validate_data(x,y)
+        
+    
+    
