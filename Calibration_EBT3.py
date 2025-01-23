@@ -111,23 +111,22 @@ class CurveFitter:
         if len(y) == 0:
             warnings.warn("y array cannot be empty", UserWarning)
             return False
-        
-        if np.any(np.isnan(x)) or np.any(np.isinf(x)):
-            warnings.warn("x array contains NaN or inf values", UserWarning)
-            return False
-            
         try:
-            x_array = np.asarray(x)
-            y_array = np.asarray(y)
-        except Exception as e:
+            x_array = np.asarray(x, dtype = float)
+            y_array = np.asarray(y, dtype = float)
+        except (ValueError, TypeError) as e:
             warnings.warn(f"Could not convert inputs to numpy arrays: {str(e)}", UserWarning)
             return False
-            
-        if not np.all((x >= 0) & (x <= 65535)):
+        
+        if np.any(np.isnan(x_array)) or np.any(np.isinf(x_array)):
+            warnings.warn("x array contains NaN or inf values", UserWarning)
+            return False
+                
+        if not np.all((x_array >= 0) & (x_array <= 65535)):
             warnings.warn("x values must be between 0 and 65535", UserWarning)
             return False
             
-        if not np.all((y >= 0) & (y <= 50)):
+        if not np.all((y_array >= 0) & (y_array <= 50)):
             warnings.warn("y values should be between 0 and 50 Gy. Higher doses may lead to inaccurate measurements for EBT3.", UserWarning)
             return True
         
