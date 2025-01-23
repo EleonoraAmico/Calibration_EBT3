@@ -93,6 +93,8 @@ class CurveFitter:
         bool
             True if data is valid, False otherwise
         """
+        # Check for NaN or inf values
+       
         if x is None:
             warnings.warn("x array cannot be None", UserWarning)
             return False
@@ -100,6 +102,7 @@ class CurveFitter:
         if y is None:
             warnings.warn("y array cannot be None", UserWarning)
             return False
+        
             
         if len(x) == 0:
             warnings.warn("x array cannot be empty", UserWarning)
@@ -107,6 +110,10 @@ class CurveFitter:
             
         if len(y) == 0:
             warnings.warn("y array cannot be empty", UserWarning)
+            return False
+        
+        if np.any(np.isnan(x)) or np.any(np.isinf(x)):
+            warnings.warn("x array contains NaN or inf values", UserWarning)
             return False
             
         try:
@@ -387,6 +394,8 @@ class CurveFitter:
         
         if len(x) - (max_degree) <= 0:
             raise ValueError ("Number of points must be higher than max_degree")
+        if alpha < 0:
+            raise ValueError ("Alpha must be a positive number")
             
     # Check for constant x or y values
         if np.all(y == y[0]):
@@ -408,9 +417,6 @@ class CurveFitter:
         if np.all(x == x[0]):
             # Cannot fit polynomial if x is constant - undefined
             raise ValueError("Cannot fit polynomial when all x values are constant")
-            
-        
-        
             
         fitting_results = []
         best_fit = {
