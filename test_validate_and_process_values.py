@@ -47,10 +47,10 @@ def test_validate_data_none_values():
     fitter = CurveFitter()
     x = np.array([0, 1000, 30000])
     
-    with pytest.raises(ValueError, match="Input arrays cannot be None"):
+    with pytest.warns(UserWarning, match="x array cannot be None"):
         fitter._validate_data(None, x)
     
-    with pytest.raises(ValueError, match="Input arrays cannot be None"):
+    with pytest.warns(UserWarning, match="y array cannot be None"):
         fitter._validate_data(x, None)
 
 def test_validate_data_empty_arrays():
@@ -62,10 +62,10 @@ def test_validate_data_empty_arrays():
     """
     fitter = CurveFitter()
     
-    with pytest.raises(ValueError, match="Input arrays cannot be empty"):
+    with pytest.warns(UserWarning):
         fitter._validate_data(np.array([]), np.array([1, 2, 3]))
     
-    with pytest.raises(ValueError, match="Input arrays cannot be empty"):
+    with pytest.warns(UserWarning):
         fitter._validate_data(np.array([1, 2, 3]), np.array([]))
 
 def test_validate_data_x_range():
@@ -80,11 +80,14 @@ def test_validate_data_x_range():
     
     # Test x values below 0
     x_below = np.array([-1, 0, 1000])
-    assert not fitter._validate_data(x_below, y)
+    with pytest.warns(UserWarning, match="x values must be between 0 and 65535"):
+        fitter._validate_data(x_below, y)
+
     
     # Test x values above 65535
     x_above = np.array([0, 65535, 70000])
-    assert not fitter._validate_data(x_above, y)
+    with pytest.warns(UserWarning, match="x values must be between 0 and 65535"):
+        fitter._validate_data(x_above, y)
 
 def test_validate_data_y_range():
     """Tests that validate_data returns False when y values are out of range
@@ -98,11 +101,13 @@ def test_validate_data_y_range():
     
     # Test y values below 0
     y_below = np.array([-1, 0, 10])
-    assert not fitter._validate_data(x, y_below)
+    with pytest.warns(UserWarning, match="y values should be between 0 and 50 Gy. Higher doses may lead to inaccurate measurements for EBT3."):
+        fitter._validate_data(x, y_below)
     
     # Test y values above 50
     y_above = np.array([0, 50, 51])
-    assert not fitter._validate_data(x, y_above)
+    with pytest.warns(UserWarning, match="y values should be between 0 and 50 Gy. Higher doses may lead to inaccurate measurements for EBT3."):
+        fitter._validate_data(x, y_above)
 
 def test_validate_data_valid_inputs():
     """Tests that validate_data returns True for valid inputs
@@ -205,6 +210,7 @@ def test_process_values_net_od_mode():
     THEN: The method returns -log10(x/x_zero) where x_zero corresponds to y=0
     """
     fitter = CurveFitter()
+    
     x = np.array([1000, 2000, 3000])
     y = np.array([0, 5, 10])  # First point is zero reference
     
@@ -288,6 +294,13 @@ def test_non_finite_values():
     y = np.array([1, 2, 3, np.inf, 5])
     with pytest.warns(UserWarning):
         fitter._validate_data(x,y)
+        
+def test_unknown_processing_mode():
+    fitter = CurveFitter()
+    x_values = np.array([1000, 2000, 3000])
+    with pytest.raises(ValueError, match="Unknown processing mode"):
+        fitter._process_values(x_values, mode="invalid_mode") #Intentionally invalid mode
+
         
     
     
