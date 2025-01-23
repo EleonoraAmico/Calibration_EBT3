@@ -123,13 +123,13 @@ class CurveFitter:
             warnings.warn(f"Could not convert inputs to numpy arrays: {str(e)}", UserWarning)
             return False
             
-        if not (0 <= x_array.all() <= 65535):
+        if not np.all((x >= 0) & (x <= 65535)):
             warnings.warn("x values must be between 0 and 65535", UserWarning)
             return False
             
-        if not (0 <= y_array.all() <= 50):
-            warnings.warn("y values must be between 0 and 50 Gy", UserWarning)
-            return False
+        if not np.all((y >= 0) & (y <= 50)):
+            warnings.warn("y values should be between 0 and 50 Gy. Higher doses may lead to inaccurate measurements for EBT3.", UserWarning)
+            return True
         
         return True
 
