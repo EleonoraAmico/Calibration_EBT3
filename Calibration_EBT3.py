@@ -331,8 +331,8 @@ class CurveFitter:
            
            if not np.all(valid_input):
                warnings.warn(f"Invalid values found at x positions: {np.where(~valid_input)[0]}")
-               valid_input = valid_input[valid_input!=0]
-           result = a * valid_input + b * valid_input ** r
+               x = x[x!=0]
+           result = a * x + b *x** r
         else: 
             result = a * x + b * x**r
         return result
