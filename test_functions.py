@@ -512,50 +512,50 @@ def test_log_function():
         
         # Verify the result is NaN for invalid values
         assert np.all(np.isnan(result))
-        
-def test_generalized_polynomial():
-    """Test suite for polynomial scaling function"""
-    
-    fitter=CurveFitter()
 
-    def test_zero_input():
+
+class TestGeneralizedPolynomial:
+    def setup_method(self):
+        self.fitter = CurveFitter()
+
+    def test_zero_input(self):
         """
         GIVEN: Zero input with various parameters
         WHEN: The polynomial scaling function is applied
         THEN: The output should be zero
         """
-        assert fitter._generalized_polynomial(0, 1, 1, 2) == 0
-        assert fitter._generalized_polynomial(0, -1, 5, 3) == 0
-        assert fitter._generalized_polynomial(0, 10, -3, 4) == 0
+        assert self.fitter._generalized_polynomial(0, 1, 1, 2) == 0
+        assert self.fitter._generalized_polynomial(0, -1, 5, 3) == 0
+        assert self.fitter._generalized_polynomial(0, 10, -3, 4) == 0
 
-    def test_unity_scaling():
+    def test_unity_scaling(self):
         """
         GIVEN: Input x=1 with various parameters
         WHEN: The polynomial scaling function is applied
         THEN: The output should be the sum of parameters a and b
         """
-        assert fitter._generalized_polynomial(1, 2, 3, 2) == 5  # 2*1 + 3*1^2
-        assert fitter._generalized_polynomial(1, -1, 1, 3) == 0  # -1*1 + 1*1^3
+        assert self.fitter._generalized_polynomial(1, 2, 3, 2) == 5  # 2*1 + 3*1^2
+        assert self.fitter._generalized_polynomial(1, -1, 1, 3) == 0  # -1*1 + 1*1^3
 
     @given(x=st.floats(min_value=-1e3, max_value=1e3),
            a=st.floats(min_value=-1e2, max_value=1e2),
            b=st.floats(min_value=-1e2, max_value=1e2))
-    def test_linear_case(x, a, b):
+    @settings(suppress_health_check=[HealthCheck.differing_executors])
+    def test_linear_case(self, x, a, b):
         """
         GIVEN: Random inputs with r=1
         WHEN: The polynomial scaling function is applied
         THEN: The function should behave linearly with slope (a+b)
         """
         assume(not np.isnan(x) and not np.isnan(a) and not np.isnan(b))
-        result = fitter._generalized_polynomial(x, a, b, 1)
+        result = self.fitter._generalized_polynomial(x, a, b, 1)
         expected = x * (a + b)
         assert np.abs(result - expected) < 1e-10
-    
-    @given(x=st.floats(min_value=0, max_value=1e3), # Only need positive x since we'll test symmetry
+
+    @given(x=st.floats(min_value=0, max_value=1e7),
            a=st.floats(min_value=-1e2, max_value=1e2),
            b=st.floats(min_value=-1e2, max_value=1e2))
-
-    def test_parabolic_symmetry( x, a, b):
+    def test_parabolic_symmetry(self, x, a, b):
         """
         GIVEN: Random positive inputs with r=2
         WHEN: The polynomial scaling function is evaluated at x and -x
@@ -567,37 +567,37 @@ def test_generalized_polynomial():
         assume(not np.isnan(x) and not np.isnan(a) and not np.isnan(b))
         
         # Evaluate function at x and -x
-        f_x = fitter._generalized_polynomial(x, a, b, 2)    # a*x + b*x^2
-        f_minus_x = fitter._generalized_polynomial(-x, a, b, 2)  # a*(-x) + b*(-x)^2
+        f_x = self.fitter._generalized_polynomial(x, a, b, 2)
+        f_minus_x = self.fitter._generalized_polynomial(-x, a, b, 2)
         
         # Test symmetry properties
-        if abs(a) < 1e-10:  # When a ≈ 0
+        if a == 0:  # When a = 0
             # Pure quadratic should be symmetric about y-axis
             assert np.abs(f_x - f_minus_x) < 1e-10
-        elif abs(b) < 1e-10:  # When b ≈ 0
+        elif b == 0:  # When b = 0
             # Pure linear should be antisymmetric about origin
             assert np.abs(f_x + f_minus_x) < 1e-10
         else:
             # General case: f(-x) = -ax + bx^2
             expected_symmetry = -a*x + b*x**2
             assert np.abs(f_minus_x - expected_symmetry) < 1e-10
-    
-    @given(x=st.floats(min_value=1e3, max_value=1e3).filter(lambda x: x != 0),
+
+    @given(x=st.floats(min_value=0, max_value=65535).filter(lambda x: x != 0),
            a=st.floats(min_value=-1e2, max_value=1e2),
            b=st.floats(min_value=-1e2, max_value=1e2),
-           r=st.floats(min_value=0, max_value=1e2))
-    def test_polynomial_case(x, a, b, r):
+           r=st.floats(min_value=0, max_value=10))
+    def test_polynomial_case(self, x, a, b, r):
         """
         GIVEN: Random inputs
         WHEN: The polynomial scaling function is applied
         THEN:  The output should be correctly computed for each element
         """
         assume(not np.isnan(x) and not np.isnan(a) and not np.isnan(b) and not np.isnan(r))
-        result = fitter._generalized_polynomial(x, a, b, r)
+        result = self.fitter._generalized_polynomial(x, a, b, r)
         expected = a*x + b*x**r
         assert np.abs(result - expected) < 1e-10
     
-    def test_polynomial_warning_negative_r():
+    def test_polynomial_warning_negative_r(self):
         """Test warning generation for zero values with negative power
         
         GIVEN: Input array containing zero and negative power r
