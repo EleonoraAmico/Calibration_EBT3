@@ -609,11 +609,12 @@ class TestGeneralizedPolynomial:
         r = -2.0
         
         with pytest.warns(Warning) as warning_info:
-            result = fitter._generalized_polynomial(x, a, b, r)
-            assert len(warning_info) == 1
-            assert "Invalid values found at x positions: [1]" in str(warning_info[0].message)
-        
-    def test_polynomial_calculation_negative_r():
+            result = self.fitter._generalized_polynomial(x, a, b, r)
+
+        assert len(warning_info) == 1
+        assert "Invalid values found at x positions: [1]" in str(warning_info[0].message)
+
+    def test_polynomial_calculation_negative_r(self):
         """Test polynomial calculation with negative power on valid inputs
         
         GIVEN: Non-zero input values and negative power r
