@@ -75,14 +75,27 @@ def test_exponential_with_offset_decreasing_trend():
 def test_exponential_with_offset_coefficient_b_equal_to_zero():
     """Tests that _exponential function produces expected output
     
-    GIVEN: A CurveFitter instance and simple x values with known parameters
+    GIVEN: A CurveFitter instance and simple x values with parameter b equal to 0
     WHEN: The _exponential function is called
-    THEN: The output shows decreasing trend and proper shape
+    THEN: The output is a ValueError becuase b cannot be zero
     """
     fitter = CurveFitter()
     x = np.array([0, 1, 2])
     a, b, c = -1.0, 0, 2.0
     
+    with pytest.raises(ValueError):
+        result = fitter._exponential(x, a, b, c)
+        
+def test_exponential_with_no_data():
+    """Tests that _exponential function produces expected output
+    
+    GIVEN: A CurveFitter instance and simple x values with parameter b equal to 0
+    WHEN: The _exponential function is called
+    THEN: The output is a ValueError becuase b cannot be zero
+    """
+    fitter = CurveFitter()
+    a, b, c = -1.0, 0, 2.0
+    x = np.array([])
     with pytest.raises(ValueError):
         result = fitter._exponential(x, a, b, c)
         
