@@ -664,15 +664,67 @@ class TestGeneralizedPolynomial:
         (3, 2, -1, 2, -3),  # 2*3 + (-1)*3^2
         (-1, 1, 1, 3, -2)   # 1*(-1) + 1*(-1)^3
     ])
-    def test_specific_values(x, a, b, r, expected):
+    def test_specific_values(self, x, a, b, r, expected):
         """
         GIVEN: Specific input values and parameters
         WHEN: The polynomial scaling function is applied
         THEN: The output should match pre-calculated results
         """
-        result = fitter._generalized_polynomial(x, a, b, r)
+        result = self.fitter._generalized_polynomial(x, a, b, r)
         assert abs(result - expected) < 1e-10
 
+    def test_zero_input_non_negative_r(self):
+        """
+        GIVEN: Zero input with non-negative power r
+        WHEN: The polynomial scaling function is applied
+        THEN: The output should be zero
+        """
+        x = np.array([0, 0, 0])
+        assert np.all(self.fitter._generalized_polynomial(x, 1, 2, 2) == 0)
+        assert np.all(self.fitter._generalized_polynomial(x, 1, 2, 0) == 1)
+        assert np.all(self.fitter._generalized_polynomial(x, 1, 2, 1) == 0)
+
+    def test_extreme_value_handling(self):
+        """
+        GIVEN: Extreme input values
+        WHEN: The polynomial scaling function is applied
+        THEN: The function handles large/small values without unexpected behavior
+        """
+        # Very large values
+        x_large = np.array([1e10, 1e20, 1e30])
+        result_large = self.fitter._generalized_polynomial(x_large, 1, 1, 2)
+        # Assert that result_large is finite
+        assert np.all(np.isfinite(result_large)), "result_large is not a finite value"
+        # Very small values
+        x_small = np.array([1e-10, 1e-20, 1e-30])
+        result_small = self.fitter._generalized_polynomial(x_small, 1, 1, 2)
+        # Assert that result_small is finite
+        assert np.all(np.isfinite(result_small)), "result_large is not a finite value"
+        # Extreme parameters
+        x = 2
+        result_extreme = self.fitter._generalized_polynomial(x, 1e100, 1e-100, 50)
+        # Assert that result_extreme is finite
+        assert np.all(np.isfinite(result_extreme)), "result_large is not a finite value"
+        
+
+    def test_different_input_types(self):
+        """
+        GIVEN: Different input types
+        WHEN: The polynomial scaling function is applied
+        THEN: The function works consistently across input types
+        """
+        x_scalar = 2
+        x_list = [1, 2, 3]
+        x_numpy = np.array([1, 2, 3])
+        
+        result_scalar = self.fitter._generalized_polynomial(x_scalar, 1, 2, 2)
+        result_list = self.fitter._generalized_polynomial(x_list, 1, 2, 2)
+        result_numpy = self.fitter._generalized_polynomial(x_numpy, 1, 2, 2)
+        
+        # Validate results are consistent
+        assert isinstance(result_scalar, (int, float))
+        assert len(result_list) == 3
+        assert len(result_numpy) == 3
 
         
         
