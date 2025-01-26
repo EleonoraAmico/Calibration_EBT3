@@ -11,15 +11,58 @@ from sklearn.metrics import mean_squared_error
 import enum
 import warnings
 from sklearn.linear_model import Ridge
+import logging
+import sys
+from scipy.optimize import least_squares
 
 class ProcessingMode(enum.Enum):
     PV = "PV"  # Pass-through values
     OD = "OD"  # Optical Density
     NET_OD = "netOD"  # Net Optical Density
-
+    
+class LoggerUtility:
+    @staticmethod
+    def create_logger(name, level=logging.INFO, log_file=None):
+        """
+        Create a configured logger with optional file output
+        
+        Args:
+            name (str): Logger name
+            level (int): Logging level
+            log_file (str, optional): Path to log file
+        
+        Returns:
+            logging.Logger: Configured logger
+        """
+        logger = logging.getLogger(name)
+        logger.setLevel(level)
+        
+        # Clear existing handlers to prevent duplicate logs
+        logger.handlers.clear()
+        
+        # Console handler
+        console_handler = logging.StreamHandler(sys.stdout)
+        console_handler.setLevel(level)
+        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        console_handler.setFormatter(formatter)
+        logger.addHandler(console_handler)
+        
+        # Optional file handler
+        if log_file:
+            file_handler = logging.FileHandler(log_file)
+            file_handler.setLevel(level)
+            file_handler.setFormatter(formatter)
+            logger.addHandler(file_handler)
+        
+        return logger
 
 class CurveFitter:
-    def __init__(self):
+    def __init__(self, log_level=logging.INFO, log_file=None):
+        self.logger = LoggerUtility.create_logger(
+            name='CurveFitter', 
+            level=log_level, 
+            log_file=log_file
+        )
         self.fitting_functions = {
             'exponential': self._exponential,
             'combination_of_exponential': self._combination_of_exponential,
@@ -384,7 +427,60 @@ class CurveFitter:
         
         return result
 
-    
+    def calculate_metrics(self, y_true, y_pred, degree, coefficients, xerr=None):
+        """
+        Calculate various metrics for model fitting.
+        
+        Parameters:
+        -----------
+        y_true : array-like
+            Actual y values
+        y_pred : array-like
+            Predicted y values
+        degree : int
+            Polynomial degree
+        coefficients : array
+            Polynomial coefficients
+        xerr : array-like, optional
+            Measurement errors
+        
+        Returns:
+        --------
+        dict
+            Calculated metrics
+        """
+        mse = mean_squared_error(y_true, y_pred)
+        
+        # Chi-squared calculation
+        chi2 = None
+        if xerr is not None:
+            residuals = y_true - y_pred
+            chi2 = np.sum((residuals / xerr) ** 2)
+        
+        # Degrees of freedom
+        dof = len(y_true) - (degree + 1)
+        
+        # Coefficient ratio
+        coeff_ratio = (np.abs(coefficients[0]) / 
+                       np.max(np.abs(coefficients[1:])) 
+                       if len(coefficients) > 1 else np.inf)
+        
+        # Complexity penalty
+        complexity_penalty = degree * np.log(len(y_true))
+        
+        # Modified score with multiple criteria
+        score = (mse * 
+                 (1 + complexity_penalty / len(y_true)) * 
+                 (1 + 1/coeff_ratio))
+        
+        return {
+            'mse': mse,
+            'score': score,
+            'chi2': chi2,
+            'dof': dof,
+            'coeff_ratio': coeff_ratio
+        }
+        
     def polynomial_fit(self, x, y, xerr=None, max_degree=4, alpha=1.0):
         """
         Find the best polynomial fit using multiple criteria to avoid overfitting
@@ -413,14 +509,14 @@ class CurveFitter:
             constant_coeff = np.array([y[0]])
             fitting_results = [{
                 'function': 'constant_y',
-                'mse': 0,
-                'score': 0,
+                'metrics': {
+                    'mse': 0,
+                    'score': 0,
+                    'chi2': 0 if xerr is not None else None
+                },
                 'coefficients': constant_coeff,
                 'degree': 0,
                 'polynomial': np.poly1d(constant_coeff),
-                'chi2': 0 if xerr is not None else None,
-                'dof': len(x) - 1,
-                'coeff_ratio': float('inf')
             }]
             return 0, 0, constant_coeff, fitting_results
         
@@ -458,46 +554,23 @@ class CurveFitter:
                 p = np.poly1d(coefficients)
                 y_pred = p(x)
                 
-                # Calculate various metrics
-                mse = mean_squared_error(y, y_pred)
-                chi2 = None
-                if xerr is not None:
-                    residuals = y - y_pred
-                    chi2 = np.sum((residuals / xerr) ** 2)
-                
-                dof = len(x) - (degree + 1)
-                
-                # Calculate coefficient ratios
-                coeff_ratio = np.abs(coefficients[0]) / np.max(np.abs(coefficients[1:])) if len(coefficients) > 1 else np.inf
-                
-                # Modified score that combines multiple criteria:
-                # 1. MSE for fit quality
-                # 2. Coefficient ratio for polynomial behavior
-                # 3. Penalty for higher degrees
-                # 4. AIC-like term for model complexity
-                complexity_penalty = degree * np.log(len(x))
-                score = (mse * 
-                        (1 + complexity_penalty / len(x)) * 
-                        (1 + 1/coeff_ratio) * 
-                        (1 + alpha * degree/max_degree))
-                print('score', score)
+                # Calculate metrics using the new method
+                metrics = self._calculate_metrics(y, y_pred, degree, coefficients, xerr)
+            
+               
                 fitting_results.append({
                     'function': f'polynomial_degree_{degree}',
-                    'mse': mse,
-                    'score': score,
-                    'coefficients': coefficients,
-                    'degree': degree,
+                    'metrics': metrics,
                     'polynomial': p,
-                    'chi2': chi2,
-                    'dof': dof,
-                    'coeff_ratio': coeff_ratio
+                    'coefficients': coefficients,
+                    'degree': degree
                 })
     
                 # Update best fit if this degree has a better score
-                if score < best_fit['score']:
+                if metrics['score'] < best_fit['score']:
                     best_fit.update({
-                        'mse': mse,
-                        'score': score,
+                        'mse': metrics['mse'],
+                        'score': metrics['score'],
                         'degree': degree,
                         'coefficients': coefficients
                     })
@@ -510,24 +583,21 @@ class CurveFitter:
                     'error_message': str(e)
                 })
     
-        return (best_fit['mse'], best_fit['degree'], 
+        return (best_fit['score'], best_fit['degree'], 
                 best_fit['coefficients'], fitting_results)
 
 
     
-    def _print_fitting_results(self, fitting_results):
+    def _log_fitting_results(self, fitting_results):
         """
-        Print a formatted summary of all fitting results.
+        Log a formatted summary of all fitting results.
         
         Parameters:
         -----------
         fitting_results : list
             List of dictionaries containing fitting results for each function
         """
-        print("\nFitting Results Summary:")
-        print("-" * 80)
-        print(f"{'Function Name':<30} {'MSE':<15} ") #{'Valid Covariance':<20} {'Success'}
-        print("-" * 80)
+        self.logger.info("\nFitting Results Summary:")
         
         for result in fitting_results:
             # Format the function name to be more readable
@@ -541,20 +611,26 @@ class CurveFitter:
             # Format MSE value
             mse_str = f"{result['mse']:.2e}" if result['mse'] is not None else "Failed"
             
-            print(f"{displayed_name:<30} {mse_str:<15} ") #{str(result['valid_covariance']):<20} {result['success']}
+            # Use appropriate log level based on success
+        if result['success']:
+            self.logger.info(f"{displayed_name}: MSE = {mse_str}")
+        else:
+            self.logger.warning(f"{displayed_name}: Fitting Failed")
            
     def calculate_best_fit(self, x, y, mode=ProcessingMode.PV, print_results=False):
         """
         Calculates the best fitting function and its parameters.
         Returns the best function, its coefficients, and MSE.
         """
+        self.logger.info("Starting curve fitting")
+        
         if not self._validate_data(x, y):
             return None, None, None, None
         
         try:
             x_processed = self._process_values(x, y, mode)
         except Exception as e:
-            print(f"Error processing x values: {str(e)}")
+            self.logger.error(f"Error processing x values: {str(e)}")
             return None, None, None, None
         
         best_func = None
@@ -563,16 +639,19 @@ class CurveFitter:
         
         # Polynomial fitting
         poly_mse, best_degree, best_coefficients, poly_fitting_results = self.polynomial_fit(x_processed, y, max_degree=4)
-        best_mse = poly_mse
+        best_metrics = {
+            'mse': poly_mse,
+            'score': poly_fitting_results[best_degree - 1]['metrics']['score']
+        }
         best_func = best_degree
         best_popt = best_coefficients
+        
         
         # Add polynomial results to fitting_results
         fitting_results.extend(poly_fitting_results)
         
         initial_guess = [1.0] * 6  # Adjust size based on your function parameters
         
-        from scipy.optimize import least_squares
         
         for func_name, func in self.fitting_functions.items():
             try:
@@ -586,22 +665,23 @@ class CurveFitter:
                 if result.success:
                     # If fit succeeded, calculate MSE
                     y_fit = func(x_processed, *result.x)
-                    mse = mean_squared_error(y, y_fit)
+                    metrics = self._calculate_metrics(y, y_fit, 0, result.x)
+                   
                     
                     fitting_results.append({
                         'function': func_name,
-                        'mse': mse,
-                        'valid_covariance': True,  # We're not actually checking covariance
+                        'metrics': metrics,
                         'success': True,
                         'error_message': None,
                         'popt': result.x
                     })
                     
-                    if mse < best_mse:
-                        best_mse = mse
+                    if metrics['score'] < best_metrics['score']:
+                        best_metrics = metrics
                         best_func = func
                         best_popt = result.x
                 else:
+                    self.logger.warning(f"Fitting failed for function {func_name}")
                     fitting_results.append({
                         'function': func_name,
                         'mse': None,
@@ -611,6 +691,7 @@ class CurveFitter:
                     })
                     
             except Exception as e:
+                self.logger.error(f"Exception during fitting for {func_name}: {str(e)}")
                 fitting_results.append({
                     'function': func_name,
                     'mse': None,
@@ -620,20 +701,20 @@ class CurveFitter:
                 })
         
         if print_results:
-            self._print_fitting_results(fitting_results)
+            self._log_fitting_results(fitting_results)
             
         if best_func is None or best_popt is None:
-                print("No valid fit found")
+                self.logger.error("No valid fit found")
                 return
         elif isinstance(best_func, int):
-            print(f'The best fitting function is Polynomial Degree {best_degree}')
+            self.logger.info(f'The best fitting function is Polynomial Degree {best_degree}')
         else:
             # Get the function name without the leading underscore and format it
             func_name = best_func.__name__.lstrip('_')
             formatted_name = ' '.join(word.capitalize() for word in func_name.split('_'))
-            print(f'The best fitting function is {formatted_name}')
+            self.logger.info(f'The best fitting function is {formatted_name}')
             
-        return best_func, best_popt, best_mse, fitting_results
+        return best_func, best_popt, best_metrics['score'], fitting_results
                 
                 
                 
