@@ -383,135 +383,68 @@ def test_generalized_rational_offset_case():
     expected = (a + x) / (c * x + d)
     np.testing.assert_array_almost_equal(result, expected)
 
-def test_generalized_rational_edge_cases():
-    """Tests edge cases and boundary conditions for generalized rational function
+class TestGeneralizedRationalEdgeCases:
+    """Test suite for edge cases and boundary conditions of generalized rational function"""
     
-    Tests:
-    1. Values approaching denominator zero
-    2. Very large x values (asymptotic behavior)
-    3. Very small x values
-    4. Special parameter combinations
-    5. Almost-zero c parameter
-    """
-    fitter = CurveFitter()
+    def setup_method(self):
+        """Initialize CurveFitter before each test method"""
+        self.fitter = CurveFitter()
     
-    def test_near_zero_denominator():
+    def test_near_zero_denominator(self):
         """Test behavior near points where denominator approaches zero"""
         # For c=1, d=-2, denominator is zero at x=2
-        x = np.array([1.99, 2.01])  # Points very close to x=2
+        x = np.array([1.99, 2.01])  # Points very close to x=2 
+        self.fitter._generalized_rational(x, a=1.0, b=1.0, c=1.0, d=-2.0, e=0.0)
+            
+    def test_zero_denominator(self):
+        """Test behavior near points where denominator approaches zero"""
+        # For c=1, d=-2, denominator is zero at x=2
+        x = np.array([1.50, 2.00, 2.50])  # Point equal to x=2
         with pytest.raises(ValueError, match="Invalid input: denominator would be zero"):
-            fitter._generalized_rational(x, a=1.0, b=1.0, c=1.0, d=-2.0, e=0.0)
-
-    def test_asymptotic_behavior():
+            self.fitter._generalized_rational(x, a=1.0, b=1.0, c=1.0, d=-2.0, e=0.0)
+    
+    def test_asymptotic_behavior(self):
         """Test behavior as x approaches infinity"""
         x = np.array([1e6, 1e7])
-        result = fitter._generalized_rational(x, a=1.0, b=2.0, c=1.0, d=1.0, e=0.0)
+        result = self.fitter._generalized_rational(x, a=1.0, b=2.0, c=1.0, d=1.0, e=0.0)
         
         # As x→∞, f(x) → b/c + e
         expected_asymptote = 2.0/1.0 + 0.0
         np.testing.assert_array_almost_equal(result, [expected_asymptote, expected_asymptote], decimal=4)
-
-    def test_very_small_values():
+    
+    def test_very_small_values(self):
         """Test behavior with very small x values"""
         x = np.array([1e-10, 1e-20])
-        result = fitter._generalized_rational(x, a=1.0, b=1.0, c=1.0, d=1.0, e=0.0)
+        result = self.fitter._generalized_rational(x, a=1.0, b=1.0, c=1.0, d=1.0, e=0.0)
         
         # As x→0, f(x) → a/d + e
         expected_limit = 1.0/1.0 + 0.0
         np.testing.assert_array_almost_equal(result, [expected_limit, expected_limit], decimal=4)
-
-    def test_almost_zero_c():
+    
+    def test_almost_zero_c(self):
         """Test behavior when c is very close to zero"""
         x = np.array([1.0, 2.0])
         with pytest.raises(ValueError, match="Parameter 'c' must not be zero"):
-            fitter._generalized_rational(x, a=1.0, b=1.0, c=0.0, d=1.0, e=0.0)
+            self.fitter._generalized_rational(x, a=1.0, b=1.0, c=0.0, d=1.0, e=0.0)
         
         # Test with very small c
         very_small_c = 1e-10
-        result = fitter._generalized_rational(x, a=1.0, b=1.0, c=very_small_c, d=1.0, e=0.0)
+        result = self.fitter._generalized_rational(x, a=1.0, b=1.0, c=very_small_c, d=1.0, e=0.0)
         assert np.all(np.isfinite(result)), "Function should handle very small c values"
-        
-    def test_extreme_parameters():
+    
+    def test_extreme_parameters(self):
         """Test behavior with extreme parameter values"""
         x = np.array([1.0, 2.0])
         
         # Very large parameters
-        result = fitter._generalized_rational(x, a=1e6, b=1e6, c=1e6, d=1e6, e=1e6)
+        result = self.fitter._generalized_rational(x, a=1e6, b=1e6, c=1e6, d=1e6, e=1e6)
         assert np.all(np.isfinite(result)), "Function should handle large parameters"
         
         # Very small (but valid) parameters
-        result = fitter._generalized_rational(x, a=1e-6, b=1e-6, c=1e-6, d=1e-6, e=1e-6)
+        result = self.fitter._generalized_rational(x, a=1e-6, b=1e-6, c=1e-6, d=1e-6, e=1e-6)
         assert np.all(np.isfinite(result)), "Function should handle small parameters"
 
-def test_log_function():
-    fitter = CurveFitter()
-    
-    def test_basic_behavior():
-        """Test basic function behavior with typical inputs"""
-        x = np.array([1.0, 2.0, 3.0])
-        result = fitter._log_function(x, a=1.0, b=1.0, c=1.0)
-        
-        # Check output type and shape
-        assert isinstance(result, np.ndarray)
-        assert result.shape == x.shape
-        
-        # Check if results are finite
-        assert np.all(np.isfinite(result))
-        
-        # Verify the function formula
-        expected = np.log((x + 1.0 + 1e-10)/(1.0 + x + 1e-10)) - 1.0
-        np.testing.assert_array_almost_equal(result, expected)
-    
-    def test_edge_cases():
-        """Test behavior with edge cases"""
-        # Test with zero
-        x = np.array([0.0])
-        result = fitter._log_function(x, a=1.0, b=1.0, c=1.0)
-        assert np.isfinite(result)  # Should handle zero gracefully
-        
-        # Test with very large values
-        x = np.array([1e6])
-        result = fitter._log_function(x, a=1.0, b=1.0, c=1.0)
-        assert np.isfinite(result)  # Should handle large values
-    
-    def test_parameter_sensitivity():
-        """Test sensitivity to parameter changes"""
-        x = np.array([1.0])
-        
-        # Test different parameter combinations
-        result1 = fitter._log_function(x, a=1.0, b=1.0, c=1.0)
-        result2 = fitter._log_function(x, a=2.0, b=1.0, c=1.0)
-        assert result1 != result2  # Should be sensitive to 'a' parameter
-        
-        result3 = fitter._log_function(x, a=1.0, b=2.0, c=1.0)
-        assert result1 != result3  # Should be sensitive to 'b' parameter
-        
-        result4 = fitter._log_function(x, a=1.0, b=1.0, c=2.0)
-        assert result1 != result4  # Should be sensitive to 'c' parameter
-    
-    def test_input_types():
-        """Test different input types"""
-        # Test list input
-        result = fitter._log_function([1.0, 2.0], a=1.0, b=1.0, c=1.0)
-        assert isinstance(result, np.ndarray)
-        
-        # Test single float input
-        result = fitter._log_function(1.0, a=1.0, b=1.0, c=1.0)
-        assert isinstance(result, np.ndarray)
-        
-    def test_log_function_warnings():
-        """Test that appropriate warnings are raised for invalid values"""
-        fitter = CurveFitter()
-        
-        # Test with negative values that should trigger warning
-        x = np.array([-1.0, -2.0])
-        
-        # Use pytest's warning catching mechanism
-        with pytest.warns(UserWarning, match="Invalid values found at x positions:"):
-            result = fitter._log_function(x, a=1.0, b=1.0, c=2.0)
-        
-        # Verify the result is NaN for invalid values
-        assert np.all(np.isnan(result))
+
         
 class TestLogFunction:
     
