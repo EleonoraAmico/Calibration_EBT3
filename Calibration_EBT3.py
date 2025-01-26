@@ -159,6 +159,8 @@ class CurveFitter:
         if len(x) == 0:
             raise ValueError("Input array 'x' must not be empty.")
         
+        
+        
         if np.max(x) - np.min(x) == 0:
             x_scaled = np.zeros_like(x)
         else:
@@ -298,11 +300,11 @@ class CurveFitter:
         if c == 0:
             raise ValueError("Parameter 'c' must not be zero. This would result in constant or linear behavior, not a rational function.")
         
-        denominator = c * x + d
+        denominator = c * x + d 
         if np.any(denominator == 0):
             raise ValueError("Invalid input: denominator would be zero")
         
-        return (a + b * x) / denominator + e
+        return ((a + b * x) / denominator) + e
 
 
     def _generalized_polynomial(self, x, a, b, r):
@@ -325,6 +327,14 @@ class CurveFitter:
         array-like
             Output values computed as a * x + b * x**r.
         """
+        # Ensure r is a valid exponent
+        if not isinstance(r, (int, float)):
+            raise ValueError("Exponent r should be an integer or float.")
+        # Check if x is a numpy array
+        if not isinstance(x, (int, float, np.ndarray)):
+            warnings.warn("Input x is not int, float or a numpy array. Converting to numpy array.", UserWarning)
+            x = np.array(x)  # Convert to numpy array if it's not
+
         if r < 0: 
            # Check for invalid values
            valid_input = (x != 0)
