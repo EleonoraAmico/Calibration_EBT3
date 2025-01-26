@@ -8,8 +8,8 @@ Created on Thu Jan 16 10:32:33 2025
 import numpy as np
 from Calibration_EBT3 import CurveFitter
 import pytest
-from hypothesis import given, strategies as st
-from hypothesis import given, assume
+from hypothesis import given, assume, settings, HealthCheck, strategies as st
+import random
 
 # Tests for individual curve functions
 def test_exponential_increasing_basic():
@@ -512,7 +512,71 @@ def test_log_function():
         
         # Verify the result is NaN for invalid values
         assert np.all(np.isnan(result))
-
+        
+class TestLogFunction:
+    
+    def setup_method(self):
+        self.fitter = CurveFitter()
+        
+    def test_basic_behavior(self):
+        """Test basic function behavior with typical inputs"""
+        x = np.array([1.0, 2.0, 3.0])
+        result = self.fitter._log_function(x, a=1.0, b=1.0, c=1.0)
+        
+        assert isinstance(result, np.ndarray)
+        assert result.shape == x.shape
+        assert np.all(np.isfinite(result))
+        
+        expected = np.log((x + 1.0 + 1e-10)/(1.0 + x + 1e-10)) - 1.0
+        np.testing.assert_array_almost_equal(result, expected)
+    
+    def test_edge_cases(self):
+        """Test behavior with edge cases"""
+        # Test with zero
+        x = np.array([0.0])
+        result = self.fitter._log_function(x, a=1.0, b=1.0, c=1.0)
+        assert np.isfinite(result)  # Should handle zero gracefully
+        
+        # Test with very large values
+        x = np.array([1e6])
+        result = self.fitter._log_function(x, a=1.0, b=1.0, c=1.0)
+        assert np.isfinite(result)  # Should handle large values
+    
+    def test_parameter_sensitivity(self):
+        """Test sensitivity to parameter changes"""
+        x = np.array([1.0])
+        
+        result1 = self.fitter._log_function(x, a=1.0, b=1.0, c=1.0)
+        result2 = self.fitter._log_function(x, a=2.0, b=1.0, c=1.0)
+        assert result1 != result2  # Should be sensitive to 'a' parameter
+        
+        result3 = self.fitter._log_function(x, a=1.0, b=2.0, c=1.0)
+        assert result1 != result3  # Should be sensitive to 'b' parameter
+        
+        result4 = self.fitter._log_function(x, a=1.0, b=1.0, c=2.0)
+        assert result1 != result4  # Should be sensitive to 'c' parameter
+    
+    def test_input_types(self):
+        """Test different input types"""
+        # Test list input
+        result = self.fitter._log_function([1.0, 2.0], a=1.0, b=1.0, c=1.0)
+        assert isinstance(result, np.ndarray)
+        
+        # Test single float input
+        result = self.fitter._log_function(1.0, a=1.0, b=1.0, c=1.0)
+        assert isinstance(result, np.ndarray)
+    
+    def test_log_function_warnings(self):
+        """Test that appropriate warnings are raised for invalid values"""
+        # Test with negative values that should trigger warning
+        x = np.array([-1.0, -2.0])
+        
+        # Use pytest's warning catching mechanism
+        with pytest.warns(UserWarning, match="Invalid values found at x positions:"):
+            result = self.fitter._log_function(x, a=1.0, b=1.0, c=2.0)
+        
+        # Verify the result is NaN for invalid values
+        assert np.all(np.isnan(result))
 
 class TestGeneralizedPolynomial:
     def setup_method(self):
@@ -555,6 +619,7 @@ class TestGeneralizedPolynomial:
     @given(x=st.floats(min_value=0, max_value=1e7),
            a=st.floats(min_value=-1e2, max_value=1e2),
            b=st.floats(min_value=-1e2, max_value=1e2))
+    @settings(suppress_health_check=[HealthCheck.differing_executors])
     def test_parabolic_symmetry(self, x, a, b):
         """
         GIVEN: Random positive inputs with r=2
@@ -586,6 +651,7 @@ class TestGeneralizedPolynomial:
            a=st.floats(min_value=-1e2, max_value=1e2),
            b=st.floats(min_value=-1e2, max_value=1e2),
            r=st.floats(min_value=0, max_value=10))
+    @settings(suppress_health_check=[HealthCheck.differing_executors])
     def test_polynomial_case(self, x, a, b, r):
         """
         GIVEN: Random inputs
@@ -628,11 +694,11 @@ class TestGeneralizedPolynomial:
         # Expected result: 2x + 3x^(-2)
         expected = 2.0 * x + 3.0 * x**(-2.0)
         
-        result = fitter.generalized_polynomial(x, a, b, r)
+        result = self.fitter._generalized_polynomial(x, a, b, r)
         
         np.testing.assert_array_almost_equal(result, expected)
-    
-    def test_polynomial_array_shape():
+
+    def test_polynomial_array_shape(self):
         """Test output shape matches input shape
         
         GIVEN: Input array of specific shape
@@ -643,19 +709,18 @@ class TestGeneralizedPolynomial:
         a, b = 2.0, 3.0
         r = 2.0
         
-        result = fitter.generalized_polynomial(x, a, b, r)
+        result = self.fitter._generalized_polynomial(x, a, b, r)
         
         assert result.shape == x.shape
 
-
-    def test_array_input():
+    def test_array_input(self):
         """
         GIVEN: Array input
         WHEN: The polynomial scaling function is applied
         THEN: The output should be correctly computed for each element
         """
         x = np.array([0, 1, 2])
-        result = fitter._generalized_polynomial(x, 1, 2, 2)
+        result = self.fitter._generalized_polynomial(x, 1, 2, 2)
         expected = np.array([0, 3, 10])  # [1*0 + 2*0^2, 1*1 + 2*1^2, 1*2 + 2*2^2]
         np.testing.assert_array_almost_equal(result, expected)
 
@@ -681,7 +746,7 @@ class TestGeneralizedPolynomial:
         """
         x = np.array([0, 0, 0])
         assert np.all(self.fitter._generalized_polynomial(x, 1, 2, 2) == 0)
-        assert np.all(self.fitter._generalized_polynomial(x, 1, 2, 0) == 1)
+        assert np.all(self.fitter._generalized_polynomial(x, 1, 2, 0) == 2)
         assert np.all(self.fitter._generalized_polynomial(x, 1, 2, 1) == 0)
 
     def test_extreme_value_handling(self):
@@ -718,11 +783,12 @@ class TestGeneralizedPolynomial:
         x_numpy = np.array([1, 2, 3])
         
         result_scalar = self.fitter._generalized_polynomial(x_scalar, 1, 2, 2)
-        result_list = self.fitter._generalized_polynomial(x_list, 1, 2, 2)
+        with pytest.warns(UserWarning):
+            result_list = self.fitter._generalized_polynomial(x_list, 1, 2, 2)
         result_numpy = self.fitter._generalized_polynomial(x_numpy, 1, 2, 2)
         
         # Validate results are consistent
-        assert isinstance(result_scalar, (int, float))
+        assert isinstance(result_scalar, (int, float, np.generic)), "result_scalar must be an int, float, or a NumPy scalar"
         assert len(result_list) == 3
         assert len(result_numpy) == 3
 
