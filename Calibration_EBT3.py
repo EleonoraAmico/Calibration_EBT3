@@ -14,6 +14,7 @@ from sklearn.linear_model import Ridge
 import logging
 import sys
 from scipy.optimize import least_squares
+import inspect
 
 class ProcessingMode(enum.Enum):
     PV = "PV"  # Pass-through values
@@ -427,7 +428,7 @@ class CurveFitter:
         
         return result
 
-    def calculate_metrics(self, y_true, y_pred, degree, coefficients, xerr=None):
+    def _calculate_metrics(self, y_true, y_pred, degree, coefficients, xerr=None):
         """
         Calculate various metrics for model fitting.
         
@@ -503,7 +504,7 @@ class CurveFitter:
         if alpha < 0:
             raise ValueError ("Alpha must be a positive number")
             
-    # Check for constant x or y values
+        # Check for constant x or y values
         if np.all(y == y[0]):
             # For constant y, return degree 0 polynomial with that constant
             constant_coeff = np.array([y[0]])
@@ -517,6 +518,7 @@ class CurveFitter:
                 'coefficients': constant_coeff,
                 'degree': 0,
                 'polynomial': np.poly1d(constant_coeff),
+                'success': True
             }]
             return 0, 0, constant_coeff, fitting_results
         
@@ -563,7 +565,8 @@ class CurveFitter:
                     'metrics': metrics,
                     'polynomial': p,
                     'coefficients': coefficients,
-                    'degree': degree
+                    'degree': degree,
+                    'success': True
                 })
     
                 # Update best fit if this degree has a better score
@@ -609,18 +612,30 @@ class CurveFitter:
                 displayed_name = ' '.join(word.capitalize() for word in func_name.split('_'))
             
             # Format MSE value
-            mse_str = f"{result['mse']:.2e}" if result['mse'] is not None else "Failed"
+            score_str = f"{result['metrics']['score']:.2e}" if result['metrics'] is not None else "Failed"
             
             # Use appropriate log level based on success
-        if result['success']:
-            self.logger.info(f"{displayed_name}: MSE = {mse_str}")
-        else:
-            self.logger.warning(f"{displayed_name}: Fitting Failed")
+            if result['success']:
+                self.logger.info(f"{displayed_name}: score = {score_str}")
+            else:
+                self.logger.warning(f"{displayed_name}: Fitting Failed")
            
     def calculate_best_fit(self, x, y, mode=ProcessingMode.PV, print_results=False):
         """
         Calculates the best fitting function and its parameters.
-        Returns the best function, its coefficients, and MSE.
+        Returns the best function, its coefficients, and score.
+        Args:
+            x (array-like): Input x values
+            y (array-like): Input y values
+            mode (ProcessingMode): Processing mode for x values
+            print_results (bool): Whether to print detailed fitting results
+        
+        Returns:
+            tuple: Best fitting function, its parameters, and performance metrics
+        
+        Raises:
+            ValueError: If input data is invalid
+            RuntimeError: If no valid fit can be found
         """
         self.logger.info("Starting curve fitting")
         
@@ -638,11 +653,8 @@ class CurveFitter:
         fitting_results = []
         
         # Polynomial fitting
-        poly_mse, best_degree, best_coefficients, poly_fitting_results = self.polynomial_fit(x_processed, y, max_degree=4)
-        best_metrics = {
-            'mse': poly_mse,
-            'score': poly_fitting_results[best_degree - 1]['metrics']['score']
-        }
+        best_score, best_degree, best_coefficients, poly_fitting_results = self.polynomial_fit(x_processed, y, max_degree=4)
+        
         best_func = best_degree
         best_popt = best_coefficients
         
@@ -650,55 +662,64 @@ class CurveFitter:
         # Add polynomial results to fitting_results
         fitting_results.extend(poly_fitting_results)
         
-        initial_guess = [1.0] * 6  # Adjust size based on your function parameters
-        
+        # Implement smarter initial guess based on function characteristics 
+        def generate_initial_guess(func):
+            signature = inspect.signature(func)
+            return [1.0] * (len(signature.parameters) - 1)  # Subtract 2 for self and x
         
         for func_name, func in self.fitting_functions.items():
-            try:
-                # Define residual function for least_squares
-                def residuals(params):
-                    return func(x_processed, *params) - y
+            
+            with warnings.catch_warnings():
+                warnings.filterwarnings('ignore', message='Invalid values found at x positions*')
                 
-                # Try fitting without covariance calculation
-                result = least_squares(residuals, initial_guess)
+                initial_guess = generate_initial_guess(func)
                 
-                if result.success:
-                    # If fit succeeded, calculate MSE
-                    y_fit = func(x_processed, *result.x)
-                    metrics = self._calculate_metrics(y, y_fit, 0, result.x)
-                   
+                try:
+                    # Define residual function for least_squares
+                    def residuals(params):
+                        return func(x_processed, *params) - y
                     
+                    # Try fitting without covariance calculation
+    
+                    result = least_squares(residuals, initial_guess)
+    
+                    if result.success:
+                        # If fit succeeded, calculate MSE
+                        y_fit = func(x_processed, *result.x)
+                        metrics = self._calculate_metrics(y, y_fit, 0, result.x)
+                       
+                        
+                        fitting_results.append({
+                            'function': func_name,
+                            'metrics': metrics,
+                            'success': True,
+                            'error_message': None,
+                            'popt': result.x
+                        })
+                        
+                        if metrics['score'] < best_score:
+                            best_score = metrics['score']
+                            best_func = func
+                            best_popt = result.x
+                    else:
+                        self.logger.warning(f"Fitting failed for function {func_name}")
+                        fitting_results.append({
+                            'function': func_name,
+                            'metrics': None,
+                            'valid_covariance': False,
+                            'success': False,
+                            'error_message': "Fitting failed"
+                        })
+                        
+                except Exception as e:
+                    self.logger.error(f"Exception during fitting for {func_name}: {str(e)}")
                     fitting_results.append({
                         'function': func_name,
-                        'metrics': metrics,
-                        'success': True,
-                        'error_message': None,
-                        'popt': result.x
-                    })
-                    
-                    if metrics['score'] < best_metrics['score']:
-                        best_metrics = metrics
-                        best_func = func
-                        best_popt = result.x
-                else:
-                    self.logger.warning(f"Fitting failed for function {func_name}")
-                    fitting_results.append({
-                        'function': func_name,
-                        'mse': None,
+                        'metrics': None,
                         'valid_covariance': False,
                         'success': False,
-                        'error_message': "Fitting failed"
+                        'error_message': str(e)
                     })
-                    
-            except Exception as e:
-                self.logger.error(f"Exception during fitting for {func_name}: {str(e)}")
-                fitting_results.append({
-                    'function': func_name,
-                    'mse': None,
-                    'valid_covariance': False,
-                    'success': False,
-                    'error_message': str(e)
-                })
         
         if print_results:
             self._log_fitting_results(fitting_results)
@@ -714,7 +735,7 @@ class CurveFitter:
             formatted_name = ' '.join(word.capitalize() for word in func_name.split('_'))
             self.logger.info(f'The best fitting function is {formatted_name}')
             
-        return best_func, best_popt, best_metrics['score'], fitting_results
+        return best_func, best_popt, best_score, fitting_results
                 
                 
                 
