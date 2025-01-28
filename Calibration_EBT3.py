@@ -8,6 +8,7 @@ Created on Mon Jan  6 12:59:35 2025
 import numpy as np
 from scipy.optimize import curve_fit
 from sklearn.metrics import mean_squared_error
+from enum import Enum
 import enum
 import warnings
 from sklearn.linear_model import Ridge
@@ -71,7 +72,7 @@ class CurveFitter:
             'generalized_polynomial': self._generalized_polynomial,
             'log_function': self._log_function
         }
-        self.fitting_results = []
+        
         
     def _process_values(self, x_values, y_values=None, mode=ProcessingMode.PV):
         """
@@ -505,8 +506,6 @@ class CurveFitter:
         except Exception as e:
             self.logger.error(f"Error selecting best fit: {str(e)}")
             return None, None, None, fitting_results
-        # Debug print to understand the structure
-        print("Best Fit Details:", best_fit)
 
         return (
             best_fit.get('function'), 
@@ -529,6 +528,7 @@ class CurveFitter:
         Returns:
         tuple: (best_mse, best_degree, best_coefficients, fitting_results)
         """
+        fitting_results = []
         if not self._validate_data(x, y):
             return None, None, None, None
         
@@ -541,7 +541,7 @@ class CurveFitter:
         if np.all(y == y[0]):
             # For constant y, return degree 0 polynomial with that constant
             constant_coeff = np.array([y[0]])
-            self.fitting_results = [{
+            fitting_results = [{
                 'function': 'constant_y',
                 'metrics': {
                     'mse': 0,
@@ -553,7 +553,7 @@ class CurveFitter:
                 'polynomial': np.poly1d(constant_coeff),
                 'success': True
             }]
-            return 0, 0, constant_coeff, self.fitting_results
+            return fitting_results
         
         if np.all(x == x[0]):
             # Cannot fit polynomial if x is constant - undefined
@@ -592,7 +592,7 @@ class CurveFitter:
                 metrics = self._calculate_metrics(y, y_pred, degree, coefficients, xerr)
             
                
-                self.fitting_results.append({
+                fitting_results.append({
                     'function': f'polynomial_degree_{degree}',
                     'metrics': metrics,
                     'polynomial': p,
@@ -611,7 +611,7 @@ class CurveFitter:
                 #     })
     
             except Exception as e:
-                self.fitting_results.append({
+                fitting_results.append({
                     'function': f'polynomial_degree_{degree}',
                     'mse': None,
                     'success': False,
@@ -620,7 +620,7 @@ class CurveFitter:
     
         # return (best_fit['score'], best_fit['degree'], 
                 # best_fit['coefficients'], fitting_results)
-        return self.fitting_results
+        return fitting_results
 
 
     
@@ -683,7 +683,7 @@ class CurveFitter:
         
         # best_func = None
         # best_popt = None
-        self.fitting_results = []
+        fitting_results = []
         
         # # Polynomial fitting
         # best_score, best_degree, best_coefficients, poly_fitting_results = self.polynomial_fit(x_processed, y, max_degree=4)
@@ -693,7 +693,7 @@ class CurveFitter:
         poly_fitting_results = self.polynomial_fit(x_processed, y, max_degree=4)
         
         # Add polynomial results to fitting_results
-        self.fitting_results.extend(poly_fitting_results)
+        fitting_results.extend(poly_fitting_results)
         
         # Implement smarter initial guess based on function characteristics 
         def generate_initial_guess(func):
@@ -722,7 +722,7 @@ class CurveFitter:
                         metrics = self._calculate_metrics(y, y_fit, 0, result.x)
                        
                         
-                        self.fitting_results.append({
+                        fitting_results.append({
                             'function': func_name,
                             'metrics': metrics,
                             'success': True,
@@ -736,7 +736,7 @@ class CurveFitter:
                         #     best_popt = result.x
                     else:
                         self.logger.warning(f"Fitting failed for function {func_name}")
-                        self.fitting_results.append({
+                        fitting_results.append({
                             'function': func_name,
                             'metrics': None,
                             'valid_covariance': False,
@@ -746,7 +746,7 @@ class CurveFitter:
                         
                 except Exception as e:
                     self.logger.error(f"Exception during fitting for {func_name}: {str(e)}")
-                    self.fitting_results.append({
+                    fitting_results.append({
                         'function': func_name,
                         'metrics': None,
                         'valid_covariance': False,
@@ -755,7 +755,7 @@ class CurveFitter:
                     })
         
         if print_results:
-            self._log_fitting_results(self.fitting_results)
+            self._log_fitting_results(fitting_results)
             
         # if best_func is None or best_popt is None:
         #         self.logger.error("No valid fit found")
@@ -768,9 +768,9 @@ class CurveFitter:
         #     formatted_name = ' '.join(word.capitalize() for word in func_name.split('_'))
         #     self.logger.info(f'The best fitting function is {formatted_name}')
             
-        return self.fitting_results
+        return fitting_results
     
-    def log_best_fitting_function(self, best_func=None, best_degree=None):
+    def log_best_fitting_function(self, fitting_results, best_func=None, best_degree=None):
         """
         Logs detailed information about the best-fitting function.
     
@@ -788,14 +788,14 @@ class CurveFitter:
         """
         
         # Check if fitting results exist
-        if not hasattr(self, 'fitting_results') or not self.fitting_results:
+        if not fitting_results:
             self.logger.warning("No fitting results available. Compute best fit first.")
             return "No fitting results"
     
         try:
             # If no best_func provided, select from existing results
             if best_func is None:
-                best_func, best_coeff, best_metrics, _ = self._select_best_fit(self.fitting_results)
+                best_func, best_coeff, best_metrics, _ = self._select_best_fit(fitting_results)
                 print(best_func)
             # Check for invalid input
             if best_func is None:
