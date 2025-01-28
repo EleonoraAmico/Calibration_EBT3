@@ -374,11 +374,13 @@ class CurveFitter:
         # Ensure r is a valid exponent
         if not isinstance(r, (int, float)):
             raise ValueError("Exponent r should be an integer or float.")
+        if abs(r) < 0.5:
+            raise ValueError("r must be ≥ 0.5 in absolute value")
         # Check if x is a numpy array
         if not isinstance(x, (int, float, np.ndarray)):
             warnings.warn("Input x is not int, float or a numpy array. Converting to numpy array.", UserWarning)
             x = np.array(x)  # Convert to numpy array if it's not
-
+        # Handle negative exponents with zero check
         if r < 0: 
            # Check for invalid values
            valid_input = (x != 0)
@@ -386,9 +388,8 @@ class CurveFitter:
            if not np.all(valid_input):
                warnings.warn(f"Invalid values found at x positions: {np.where(~valid_input)[0]}")
                x = x[x!=0]
-           result = a * x + b *x** r
-        else: 
-            result = a * x + b * x**r
+        # Compute generalized polynomial
+        result = a * x + b * x**r
         return result
 
 
@@ -459,11 +460,12 @@ class CurveFitter:
             chi2 = np.sum((residuals / xerr) ** 2)
         
         # Degrees of freedom
-        dof = len(y_true) - (degree + 1)
+        
+        dof = len(y_true) - (len(coefficients))
         
         # Coefficient ratio
         coeff_ratio = (np.abs(coefficients[0]) / 
-                       np.max(np.abs(coefficients[1:])) 
+                       np.mean(np.abs(coefficients[1:])) 
                        if len(coefficients) > 1 else np.inf)
         
         # Complexity penalty
@@ -506,6 +508,8 @@ class CurveFitter:
         except Exception as e:
             self.logger.error(f"Error selecting best fit: {str(e)}")
             return None, None, None, fitting_results
+        # Debug print to understand the structure
+        print("Best Fit Details:", best_fit)
 
         return (
             best_fit.get('function'), 
