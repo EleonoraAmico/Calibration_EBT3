@@ -71,6 +71,7 @@ class CurveFitter:
             'generalized_polynomial': self._generalized_polynomial,
             'log_function': self._log_function
         }
+        self.fitting_results = []
         
     def _process_values(self, x_values, y_values=None, mode=ProcessingMode.PV):
         """
@@ -202,8 +203,6 @@ class CurveFitter:
         """
         if len(x) == 0:
             raise ValueError("Input array 'x' must not be empty.")
-        
-        
         
         if np.max(x) - np.min(x) == 0:
             x_scaled = np.zeros_like(x)
@@ -481,6 +480,40 @@ class CurveFitter:
             'dof': dof,
             'coeff_ratio': coeff_ratio
         }
+    
+    
+    def _select_best_fit(self, fitting_results):
+        """
+        Select the best fit based on metrics
+        """
+        successful_fits = [
+            result for result in fitting_results 
+            if result.get('success', False)
+        ]
+
+        # No successful fits
+        if not successful_fits:
+            self.logger.warning("No successful fits found")
+            return None, None, None, fitting_results
+        
+        # Sort by score (assuming lower score is better)
+        try:
+            best_fit = min(
+                successful_fits, 
+                key=lambda x: x.get('metrics', {}).get('score', float('inf'))
+            )
+        except Exception as e:
+            self.logger.error(f"Error selecting best fit: {str(e)}")
+            return None, None, None, fitting_results
+        # Debug print to understand the structure
+        print("Best Fit Details:", best_fit)
+
+        return (
+            best_fit.get('function'), 
+            best_fit.get('coefficients'), 
+            best_fit.get('metrics', {}).get('score'), 
+            fitting_results
+        )
         
     def polynomial_fit(self, x, y, xerr=None, max_degree=4, alpha=1.0):
         """
@@ -508,7 +541,7 @@ class CurveFitter:
         if np.all(y == y[0]):
             # For constant y, return degree 0 polynomial with that constant
             constant_coeff = np.array([y[0]])
-            fitting_results = [{
+            self.fitting_results = [{
                 'function': 'constant_y',
                 'metrics': {
                     'mse': 0,
@@ -520,19 +553,18 @@ class CurveFitter:
                 'polynomial': np.poly1d(constant_coeff),
                 'success': True
             }]
-            return 0, 0, constant_coeff, fitting_results
+            return 0, 0, constant_coeff, self.fitting_results
         
         if np.all(x == x[0]):
             # Cannot fit polynomial if x is constant - undefined
             raise ValueError("Cannot fit polynomial when all x values are constant")
             
-        fitting_results = []
-        best_fit = {
-            'mse': float('inf'),
-            'score': float('inf'),  # Combined score for selection
-            'degree': 0,
-            'coefficients': None
-        }
+        # best_fit = {
+        #     'mse': float('inf'),
+        #     'score': float('inf'),  # Combined score for selection
+        #     'degree': 0,
+        #     'coefficients': None
+        # }
     
         # Normalize data for numerical stability
         x_mean, x_std = np.nanmean(x), np.nanstd(x)
@@ -560,7 +592,7 @@ class CurveFitter:
                 metrics = self._calculate_metrics(y, y_pred, degree, coefficients, xerr)
             
                
-                fitting_results.append({
+                self.fitting_results.append({
                     'function': f'polynomial_degree_{degree}',
                     'metrics': metrics,
                     'polynomial': p,
@@ -569,25 +601,26 @@ class CurveFitter:
                     'success': True
                 })
     
-                # Update best fit if this degree has a better score
-                if metrics['score'] < best_fit['score']:
-                    best_fit.update({
-                        'mse': metrics['mse'],
-                        'score': metrics['score'],
-                        'degree': degree,
-                        'coefficients': coefficients
-                    })
+                # # Update best fit if this degree has a better score
+                # if metrics['score'] < best_fit['score']:
+                #     best_fit.update({
+                #         'mse': metrics['mse'],
+                #         'score': metrics['score'],
+                #         'degree': degree,
+                #         'coefficients': coefficients
+                #     })
     
             except Exception as e:
-                fitting_results.append({
+                self.fitting_results.append({
                     'function': f'polynomial_degree_{degree}',
                     'mse': None,
                     'success': False,
                     'error_message': str(e)
                 })
     
-        return (best_fit['score'], best_fit['degree'], 
-                best_fit['coefficients'], fitting_results)
+        # return (best_fit['score'], best_fit['degree'], 
+                # best_fit['coefficients'], fitting_results)
+        return self.fitting_results
 
 
     
@@ -648,19 +681,19 @@ class CurveFitter:
             self.logger.error(f"Error processing x values: {str(e)}")
             return None, None, None, None
         
-        best_func = None
-        best_popt = None
-        fitting_results = []
+        # best_func = None
+        # best_popt = None
+        self.fitting_results = []
         
-        # Polynomial fitting
-        best_score, best_degree, best_coefficients, poly_fitting_results = self.polynomial_fit(x_processed, y, max_degree=4)
+        # # Polynomial fitting
+        # best_score, best_degree, best_coefficients, poly_fitting_results = self.polynomial_fit(x_processed, y, max_degree=4)
         
-        best_func = best_degree
-        best_popt = best_coefficients
-        
+        # best_func = best_degree
+        # best_popt = best_coefficients
+        poly_fitting_results = self.polynomial_fit(x_processed, y, max_degree=4)
         
         # Add polynomial results to fitting_results
-        fitting_results.extend(poly_fitting_results)
+        self.fitting_results.extend(poly_fitting_results)
         
         # Implement smarter initial guess based on function characteristics 
         def generate_initial_guess(func):
@@ -689,21 +722,21 @@ class CurveFitter:
                         metrics = self._calculate_metrics(y, y_fit, 0, result.x)
                        
                         
-                        fitting_results.append({
+                        self.fitting_results.append({
                             'function': func_name,
                             'metrics': metrics,
                             'success': True,
                             'error_message': None,
-                            'popt': result.x
+                            'coefficients': result.x
                         })
                         
-                        if metrics['score'] < best_score:
-                            best_score = metrics['score']
-                            best_func = func
-                            best_popt = result.x
+                        # if metrics['score'] < best_score:
+                        #     best_score = metrics['score']
+                        #     best_func = func
+                        #     best_popt = result.x
                     else:
                         self.logger.warning(f"Fitting failed for function {func_name}")
-                        fitting_results.append({
+                        self.fitting_results.append({
                             'function': func_name,
                             'metrics': None,
                             'valid_covariance': False,
@@ -713,7 +746,7 @@ class CurveFitter:
                         
                 except Exception as e:
                     self.logger.error(f"Exception during fitting for {func_name}: {str(e)}")
-                    fitting_results.append({
+                    self.fitting_results.append({
                         'function': func_name,
                         'metrics': None,
                         'valid_covariance': False,
@@ -722,20 +755,80 @@ class CurveFitter:
                     })
         
         if print_results:
-            self._log_fitting_results(fitting_results)
+            self._log_fitting_results(self.fitting_results)
             
-        if best_func is None or best_popt is None:
-                self.logger.error("No valid fit found")
-                return
-        elif isinstance(best_func, int):
-            self.logger.info(f'The best fitting function is Polynomial Degree {best_degree}')
-        else:
-            # Get the function name without the leading underscore and format it
-            func_name = best_func.__name__.lstrip('_')
-            formatted_name = ' '.join(word.capitalize() for word in func_name.split('_'))
-            self.logger.info(f'The best fitting function is {formatted_name}')
+        # if best_func is None or best_popt is None:
+        #         self.logger.error("No valid fit found")
+        #         return
+        # elif isinstance(best_func, int):
+        #     self.logger.info(f'The best fitting function is Polynomial Degree {best_degree}')
+        # else:
+        #     # Get the function name without the leading underscore and format it
+        #     func_name = best_func.__name__.lstrip('_')
+        #     formatted_name = ' '.join(word.capitalize() for word in func_name.split('_'))
+        #     self.logger.info(f'The best fitting function is {formatted_name}')
             
-        return best_func, best_popt, best_score, fitting_results
+        return self.fitting_results
+    
+    def log_best_fitting_function(self, best_func=None, best_degree=None):
+        """
+        Logs detailed information about the best-fitting function.
+    
+        Parameters:
+        -----------
+        best_func : callable or int
+            The best-fitting function or polynomial degree
+        best_degree : int, optional
+            Polynomial degree (used when best_func is an integer)
+    
+        Returns:
+        --------
+        str
+            A formatted string describing the best-fitting function
+        """
+        
+        # Check if fitting results exist
+        if not hasattr(self, 'fitting_results') or not self.fitting_results:
+            self.logger.warning("No fitting results available. Compute best fit first.")
+            return "No fitting results"
+    
+        try:
+            # If no best_func provided, select from existing results
+            if best_func is None:
+                best_func, best_coeff, best_metrics, _ = self._select_best_fit(self.fitting_results)
+                print(best_func)
+            # Check for invalid input
+            if best_func is None:
+                error_msg = "No valid fit found"
+                self.logger.error(error_msg)
+                return error_msg
+        
+            # Handle polynomial fits
+            if isinstance(best_func, int) or (best_degree is not None):
+                degree = best_func if isinstance(best_func, int) else best_degree
+                log_message = f'Best fitting function: Polynomial Degree {degree}'
+                self.logger.info(log_message)
+                return log_message
+        
+            # Handle other function types
+            try:
+                # Get the function name without the leading underscore
+                # func_name = best_func.__name__.lstrip('_')
+                
+                # Format the function name (convert to title case)
+                formatted_name = ' '.join(word.capitalize() for word in best_func.split('_'))
+                
+                log_message = f'Best fitting function: {formatted_name}'
+                self.logger.info(log_message)
+                return log_message
+    
+            except AttributeError:
+                error_msg = "Unable to determine function name"
+                self.logger.error(error_msg)
+                return error_msg
+        except Exception as e:
+            self.logger.error(f"Error in logging best fitting function: {str(e)}")
+            return "Error in determining best fit"
                 
                 
                 
