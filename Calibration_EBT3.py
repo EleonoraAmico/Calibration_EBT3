@@ -16,11 +16,13 @@ import logging
 import sys
 from scipy.optimize import least_squares
 import inspect
+import scipy.stats as st
+from scipy.optimize import differential_evolution
 
 class ProcessingMode(enum.Enum):
-    PV = "PV"  # Pass-through values
-    OD = "OD"  # Optical Density
-    NET_OD = "netOD"  # Net Optical Density
+    PV = 1  # Pass-through values
+    OD = 2  # Optical Density
+    NET_OD = 3  # Net Optical Density
     
 class LoggerUtility:
     @staticmethod
@@ -86,10 +88,13 @@ class CurveFitter:
         Returns:
             processed numpy array
         """
-        if mode == ProcessingMode.PV:
+        if not isinstance(mode, ProcessingMode):
+            raise ValueError(f"Invalid processing mode: {mode}")
+
+        if mode.name == "PV":
             return x_values
         
-        elif mode == ProcessingMode.OD:
+        elif mode.name == "OD":
             if np.any(x_values == 0):
                 warnings.warn(
                     "Some values in x_values are 0. These values will be ignored "
@@ -100,7 +105,7 @@ class CurveFitter:
                 x_values = x_values[x_values > 0]
             return np.log10(65535 / x_values)
         
-        elif mode == ProcessingMode.NET_OD:
+        elif mode.name == "NET_OD":
             if y_values is None:
                 raise ValueError("y_values are required for NET_OD mode")
             # Find x_value where y = 0
