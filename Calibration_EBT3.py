@@ -261,7 +261,7 @@ class CurveFitter:
         return a * exp_component + c
 
 
-    def _combination_of_exponential(self, x, a, b, c, d, e, f):
+    def _combination_of_exponential(self, x, a, b, c, d):
         """
         Generalized combination of exponential function with scaling and overflow control.
         
@@ -289,8 +289,8 @@ class CurveFitter:
             raise ValueError("Parameters 'a', 'b', 'c', and 'd' must not be zero.")
     
         x_scaled = self._normalized_input(x)
-        exp_component_one = np.exp(np.clip(b * x_scaled + e, -700, 700)) 
-        exp_component_two = np.exp(np.clip(d * x_scaled + f, -700, 700))
+        exp_component_one = np.exp(np.clip(b * x_scaled, -700, 700)) 
+        exp_component_two = np.exp(np.clip(d * x_scaled, -700, 700))
         return a * exp_component_one + c * exp_component_two
 
     
