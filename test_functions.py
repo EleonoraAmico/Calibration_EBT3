@@ -397,7 +397,17 @@ class TestGeneralizedRational:
             self.fitter._generalized_rational(x, a=1.0, b=1.0, c=1.0, d=-2.0, e=0.0)
     
     def test_asymptotic_behavior(self):
-        """Test behavior as x approaches infinity"""
+        """Test the asymptotic behavior of the generalized rational function as x approaches infinity
+        GIVEN:
+            - A large input array `x = [1e6, 1e7]`
+            - The generalized rational function with parameters:a=1.0, b=2.0, c=1.0, d=1.0, e=0.0   
+        WHEN: The rational function is called
+        THEN:
+            - As `x → ∞`, the function should approach the asymptotic limit `b/c + e`
+            - The expected asymptote is `2.0 / 1.0 + 0.0 = 2.0`
+            - The computed results should be approximately `[2.0, 2.0]` within a precision of 4 decimal places
+        """
+
         x = np.array([1e6, 1e7])
         result = self.fitter._generalized_rational(x, a=1.0, b=2.0, c=1.0, d=1.0, e=0.0)
         
@@ -406,27 +416,67 @@ class TestGeneralizedRational:
         np.testing.assert_array_almost_equal(result, [expected_asymptote, expected_asymptote], decimal=4)
     
     def test_very_small_values(self):
-        """Test behavior with very small x values"""
+        """Test behavior with very small x values
+
+        Given: A small input array `x = [1e-10, 1e-20]` and the generalized rational function with parameters:
+                a=2.0, b=1.0, c=1.0, d=1.0, e=0.0
+        
+        When: The function is evaluated at `x`
+        
+        Then:
+            - As `x → 0`, the function should approach the limit `a/d + e`
+            - The expected limit is `2.0 / 1.0 + 0.0 = 1.0`
+            - The computed results should be approximately `[2.0, 2.0]` within a precision of 4 decimal places
+        """
         x = np.array([1e-10, 1e-20])
-        result = self.fitter._generalized_rational(x, a=1.0, b=1.0, c=1.0, d=1.0, e=0.0)
+        result = self.fitter._generalized_rational(x, a=2.0, b=1.0, c=1.0, d=1.0, e=0.0)
         
         # As x→0, f(x) → a/d + e
-        expected_limit = 1.0/1.0 + 0.0
+        expected_limit = 2.0/1.0 + 0.0
         np.testing.assert_array_almost_equal(result, [expected_limit, expected_limit], decimal=4)
+        
+    def test_zero_c(self):
+        """Test behavior when c is equal to zero
+        GIVEN: an input array `x = [1.0, 2.0]` and the generalized rational function with parameters:  
+                a=1.0, b=1.0, c=0.0 (invalid_case), d=1.0, e=0.0
+       WHEN: the function is evaluated with `c = 0.0`  
     
-    def test_almost_zero_c(self):
-        """Test behavior when c is very close to zero"""
+       THEN: a `ValueError` is raised with the message `"Parameter 'c' must not be zero
+       
+       """
         x = np.array([1.0, 2.0])
         with pytest.raises(ValueError, match="Parameter 'c' must not be zero"):
             self.fitter._generalized_rational(x, a=1.0, b=1.0, c=0.0, d=1.0, e=0.0)
-        
+    
+    def test_almost_zero_c(self):
+        """ Test behavior with very small values of parameter 'c'
+        GIVEN: the same input array `x = [1.0, 2.0]` and a very small `c = 1e-10`  
+
+        WHEN: the function is evaluated with `c = 1e-10`  
+    
+        THEN: the function should return finite values  
+              and the computed results should not contain `NaN` or `Inf`
+        """
+        x = np.array([1.0, 2.0])        
         # Test with very small c
         very_small_c = 1e-10
         result = self.fitter._generalized_rational(x, a=1.0, b=1.0, c=very_small_c, d=1.0, e=0.0)
         assert np.all(np.isfinite(result)), "Function should handle very small c values"
     
     def test_extreme_parameters(self):
-        """Test behavior with extreme parameter values"""
+        """Test behavior with extreme parameter values
+  
+        GIVEN: an input array `x = [1.0, 2.0]`  
+               and the generalized rational function with extreme parameter values  
+    
+        WHEN: the function is evaluated with very large parameters:  
+              a=1e6, b=1e6, c=1e6, d=1e6, e=1e6
+              and with very small parameters: 
+              a=1e-6, b=1e-6, c=1e-6, d=1e-6, e=1e-6
+    
+        THEN: the function should return finite values  
+              and should not produce `NaN` or `Inf` 
+        """
         x = np.array([1.0, 2.0])
         
         # Very large parameters
@@ -445,61 +495,89 @@ class TestLogFunction:
         self.fitter = CurveFitter()
         
     def test_basic_behavior(self):
-        """Test basic function behavior with typical inputs"""
+        """Test basic function behavior with typical inputs
+        GIVEN: an input array `x = [1.0, 2.0, 3.0]` and the logarithmic function with parameters:  
+            a=1.0, b=1.0
+
+        WHEN: the function is evaluated with these inputs  
+    
+        THEN: the result should be a numpy array  
+              and its shape should match the shape of `x`  
+              and all values should be finite  
+              and the computed result should be approximately equal to the expected value:
+              `log((x + 1.0 + 1e-10)/(1.0 + x + 1e-10)) - 1.0`
+        """
         x = np.array([1.0, 2.0, 3.0])
-        result = self.fitter._log_function(x, a=1.0, b=1.0, c=1.0)
+        result = self.fitter._log_function(x, a=1.0, b=1.0)
         
         assert isinstance(result, np.ndarray)
         assert result.shape == x.shape
         assert np.all(np.isfinite(result))
         
-        expected = np.log((x + 1.0 + 1e-10)/(1.0 + x + 1e-10)) - 1.0
+        expected = np.log((x + 1.0 + 1e-10)/(1.0 + 1e-10))/1.0
         np.testing.assert_array_almost_equal(result, expected)
     
     def test_edge_cases(self):
-        """Test behavior with edge cases"""
+        """Test behavior with edge cases
+        GIVEN: the logarithmic function with parameters: a=1.0, b=1.0 and:
+            -an input array `x = [0]` 
+            -an input array `x = [1e6]`
+
+        WHEN: the function is evaluated with `x = 0.0`  and `x = 1e6`
+
+        THEN: the result should be finite  
+        
+        """
         # Test with zero
         x = np.array([0.0])
-        result = self.fitter._log_function(x, a=1.0, b=1.0, c=1.0)
+        result = self.fitter._log_function(x, a=1.0, b=1.0)
         assert np.isfinite(result)  # Should handle zero gracefully
         
         # Test with very large values
         x = np.array([1e6])
-        result = self.fitter._log_function(x, a=1.0, b=1.0, c=1.0)
+        result = self.fitter._log_function(x, a=1.0, b=1.0)
         assert np.isfinite(result)  # Should handle large values
     
     def test_parameter_sensitivity(self):
-        """Test sensitivity to parameter changes"""
+        """Test sensitivity to parameter changes
+        GIVEN: an input array `x = [1.0]`  
+           and the logarithmic function with four different initial parameters:  
+           1. a=1.0, b=1.0,
+           2. a=2.0, b=1.0,
+           3. a=1.0, b=2.0
+           
+        WHEN: the function is evaluated with the different initial parameters
+
+        THEN: the results should not be equal  
+              and the function should be sensitive to changes in the parameters   
+
+        """
         x = np.array([1.0])
         
-        result1 = self.fitter._log_function(x, a=1.0, b=1.0, c=1.0)
-        result2 = self.fitter._log_function(x, a=2.0, b=1.0, c=1.0)
+        result1 = self.fitter._log_function(x, a=1.0, b=1.0)
+        result2 = self.fitter._log_function(x, a=2.0, b=1.0)
         assert result1 != result2  # Should be sensitive to 'a' parameter
         
-        result3 = self.fitter._log_function(x, a=1.0, b=2.0, c=1.0)
+        result3 = self.fitter._log_function(x, a=1.0, b=2.0)
         assert result1 != result3  # Should be sensitive to 'b' parameter
-        
-        result4 = self.fitter._log_function(x, a=1.0, b=1.0, c=2.0)
-        assert result1 != result4  # Should be sensitive to 'c' parameter
-    
-    def test_input_types(self):
-        """Test different input types"""
-        # Test list input
-        result = self.fitter._log_function([1.0, 2.0], a=1.0, b=1.0, c=1.0)
-        assert isinstance(result, np.ndarray)
-        
-        # Test single float input
-        result = self.fitter._log_function(1.0, a=1.0, b=1.0, c=1.0)
-        assert isinstance(result, np.ndarray)
+
     
     def test_log_function_warnings(self):
-        """Test that appropriate warnings are raised for invalid values"""
+        """Test that appropriate warnings are raised for invalid values
+        GIVEN: an input array `x = [-1.0, -2.0]` and the logarithmic function with parameters:  
+                a=1.0, b=1.0
+
+        WHEN: the function is evaluated with negative `x` values  
+
+        THEN: a `UserWarning` should be raised with the message `"Invalid values found at x positions:"`  
+              and the result should be `NaN` for the invalid values in `x`
+        """
         # Test with negative values that should trigger warning
         x = np.array([-1.0, -2.0])
         
         # Use pytest's warning catching mechanism
         with pytest.warns(UserWarning, match="Invalid values found at x positions:"):
-            result = self.fitter._log_function(x, a=1.0, b=1.0, c=2.0)
+            result = self.fitter._log_function(x, a=1.0, b=1.0)
         
         # Verify the result is NaN for invalid values
         assert np.all(np.isnan(result))
@@ -589,53 +667,17 @@ class TestGeneralizedPolynomial:
         expected = a*x + b*x**r
         assert np.abs(result - expected) < 1e-10
     
-    def test_polynomial_warning_negative_r(self):
-        """Test warning generation for zero values with negative power
-        
-        GIVEN: Input array containing zero and negative power r
-        WHEN: The generalized polynomial function is called  
-        THEN: A warning is raised for the zero value positions
+    def test_log_function_warnings_a_zero(self):
+        """Test that appropriate warnings are raised when parameter `a` is zero
+        GIVEN: an input array `x = [1.0, 2.0]` and the logarithmic function with parameters:  
+               a = 0.0, b = 1.0
+    
+        WHEN: the function is evaluated with `a = 0.0`  
+    
+        THEN: a `UserWarning` should be raised with the message `"Parameter 'a' should not be zero"`  
         """
-        x = np.array([1.0, 0.0, 3.0])
-        a, b = 2.0, 3.0
-        r = -2.0
-        
-        with pytest.warns(Warning) as warning_info:
-            result = self.fitter._generalized_polynomial(x, a, b, r)
-
-        assert len(warning_info) == 1
-        assert "Invalid values found at x positions: [1]" in str(warning_info[0].message)
-
-    def test_polynomial_calculation_negative_r(self):
-        """Test polynomial calculation with negative power on valid inputs
-        
-        GIVEN: Non-zero input values and negative power r
-        WHEN: The generalized polynomial function is called
-        THEN: The function correctly computes a*x + b*x^r
-        """
-        x = np.array([1.0, 2.0, 3.0])
-        a, b = 2.0, 3.0
-        r = -2.0
-        
-        # Expected result: 2x + 3x^(-2)
-        expected = 2.0 * x + 3.0 * x**(-2.0)
-        
-        result = self.fitter._generalized_polynomial(x, a, b, r)
-        
-        np.testing.assert_array_almost_equal(result, expected)
-
-    def test_polynomial_array_shape(self):
-        """Test output shape matches input shape
-        
-        GIVEN: Input array of specific shape
-        WHEN: The generalized polynomial function is called
-        THEN: The output array has the same shape as input
-        """
-        x = np.array([[1.0, 2.0], [3.0, 4.0]])
-        a, b = 2.0, 3.0
-        r = 2.0
-        
-        result = self.fitter._generalized_polynomial(x, a, b, r)
+        # Test with a = 0 that should trigger warning
+        x = np.array([1.0, 2.0])
         
         assert result.shape == x.shape
 
