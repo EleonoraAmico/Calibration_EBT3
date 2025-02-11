@@ -185,9 +185,9 @@ class TestExponentialFunctions:
         """
         
         x = np.array([0, 1, 2])
-        a, b, c, d, e, f= 1.0, 1.0, 1.0, 2.0, 1.0, 2.0
+        a, b, c, d= 1.0, 1.0, 1.0, 2.0
         
-        result = self.fitter._combination_of_exponential(x, a, b, c, d, e, f)
+        result = self.fitter._combination_of_exponential(x, a, b, c, d)
         
         assert result.shape == x.shape
         assert np.all(np.isfinite(result))
@@ -197,32 +197,29 @@ class TestExponentialFunctions:
         a=st.floats(min_value=-10, max_value=10).filter(lambda x: x != 0),  # Exclude a=0
         b=st.floats(min_value=-10, max_value=10).filter(lambda x: x != 0),  # Exclude b=0
         c=st.floats(min_value=-10, max_value=10).filter(lambda x: x != 0),  # Exclude c=0
-        d=st.floats(min_value=-10, max_value=10).filter(lambda x: x != 0),  # Exclude d=0
-        e=st.floats(min_value=-10, max_value=10),
-        f=st.floats(min_value=-10, max_value=10)
-        
+        d=st.floats(min_value=-10, max_value=10).filter(lambda x: x != 0),  # Exclude d=0   
     )
-    def test_combination_of_exponential_bounds(self,x, a, b, c, d, e, f):
+    def test_combination_of_exponential_bounds(self,x, a, b, c, d):
         """Tests that the exponential function produces finite values.
         GIVEN: Random arrays of x values and parameters
         WHEN: The exponential function is called
         THEN: All output values should be finite
         """
         x_arr = np.array(x)
-        result = self.fitter._combination_of_exponential(x_arr, a, b, c, d, e, f)
+        result = self.fitter._combination_of_exponential(x_arr, a, b, c, d)
         
         assert np.all(np.isfinite(result)), "All outputs should be finite"
     
     @pytest.mark.parametrize(
-        "a, b, c, d, e, f",
+        "a, b, c, d",
         [
-            (0, 1.0, 1.0, 1.0, 1.0, 1.0),  # a is zero
-            (1.0, 0, 1.0, 1.0, 1.0, 1.0),  # b is zero
-            (1.0, 1.0, 0, 1.0, 1.0, 1.0),  # c is zero
-            (1.0, 1.0, 1.0, 0, 1.0, 1.0),  # d is zero
+            (0, 1.0, 1.0, 1.0),  # a is zero
+            (1.0, 0, 1.0, 1.0),  # b is zero
+            (1.0, 1.0, 0, 1.0),  # c is zero
+            (1.0, 1.0, 1.0, 0),  # d is zero
         ]
     )
-    def test_combination_of_exponential_with_zero_parameters(self,a, b, c, d, e, f):
+    def test_combination_of_exponential_with_zero_parameters(self,a, b, c, d):
         """Tests that _double_exponential raises ValueError for zero parameters.
         
         GIVEN: A CurveFitter instance and simple x values with at least one zero parameter
@@ -232,7 +229,7 @@ class TestExponentialFunctions:
         
         x = np.array([0, 1, 2])
         with pytest.raises(ValueError, match="Parameters 'a', 'b', 'c', and 'd' must not be zero"):
-            result = self.fitter._combination_of_exponential(x, a, b, c, d, e, f)
+            self.fitter._combination_of_exponential(x, a, b, c, d)
     
     def test_combination_of_exponential_edge_case(self):
         """Tests the exponential difference function with extreme parameter values.
@@ -244,12 +241,13 @@ class TestExponentialFunctions:
         """
 
         x = np.array([0, 1000, -1000])
-        result = self.fitter._combination_of_exponential(x, 1000.0, 1000.0, -1000.0, -1000.0, 1000.0, -1000.0)
+        result = self.fitter._combination_of_exponential(x, 1000.0, 1000.0, -1000.0, -1000.0)
         
         assert isinstance(result, np.ndarray)
         assert result.shape == x.shape
         assert not np.any(np.isnan(result))
         assert not np.any(np.isinf(result))
+
 
 class TestGeneralizedRational:
     """Test suite for typical cases, edge cases and boundary conditions of generalized rational function"""
