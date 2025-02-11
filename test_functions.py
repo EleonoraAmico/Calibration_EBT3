@@ -89,7 +89,7 @@ class TestExponentialFunctions:
         a, b, c = -1.0, 0, 2.0
         
         with pytest.raises(ValueError):
-            result = self.fitter._exponential(x, a, b, c)
+            self.fitter._exponential(x, a, b, c)
             
     def test_exponential_with_no_data(self):
         """Tests that _exponential function produces expected output
@@ -101,7 +101,7 @@ class TestExponentialFunctions:
         a, b, c = -1.0, 0, 2.0
         x = np.array([])
         with pytest.raises(ValueError):
-            result = self.fitter._exponential(x, a, b, c)
+            self.fitter._exponential(x, a, b, c)
             
     def test_exponential_with_offset_coefficient_a_equal_to_zero(self):
         """Tests that _exponential function produces expected output
@@ -114,7 +114,7 @@ class TestExponentialFunctions:
         a, b, c = 0.0, 1, 2.0
         
         with pytest.raises(ValueError):
-            result = self.fitter._exponential(x, a, b, c)
+            self.fitter._exponential(x, a, b, c)
         
     def test_exponential_with_offset_increasing_trend(self):
         """Tests that _exponential_with_offset function produces expected output
