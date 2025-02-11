@@ -328,7 +328,6 @@ class TestGeneralizedRational:
         """
 
         x_arr = np.array(x)
-        result = self.fitter._generalized_rational(x_arr, a, b, c, d, e)
         
         # Test monotonicity for sorted input
         x_sorted = np.sort(x_arr)
