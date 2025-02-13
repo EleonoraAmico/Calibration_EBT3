@@ -611,49 +611,13 @@ class TestPolynomialFitStructure:
         y = np.array([2, 3, 5, 7, 11, 13, 15])
         
         with warnings.catch_warnings(record=True) as w:
-            results = fitter.polynomial_fit(x, y, max_degree=5)
+            fitter.polynomial_fit(x, y, max_degree=5)
             assert len(w) > 0  # Warning should have been triggered
             assert any(
                 "Polynomial degrees higher than 4 might lead to overfitting and numerical instability." in str(warning.message)
                 for warning in w
             )
 
-
-class TestPolynomialFitEdgeCases:
-    """Tests best fit for the polynomial_fit method"""
-    
-    @pytest.fixture(scope="class")
-    def fitter(self):
-        # Assuming the function is part of a class called CurveFitter
-        return CurveFitter()
-    
-    @classmethod
-    def setup_class(cls):
-        # Suppress all warnings
-        warnings.filterwarnings("ignore")
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", UserWarning)
-        
-        logger = logging.getLogger()
-        logger.setLevel(logging.CRITICAL)  # Only show CRITICAL logs
-        
-        # Remove any existing handlers to prevent double logging
-        for handler in logger.handlers[:]:
-            logger.removeHandler(handler)
-            
-        # Optional: Add a null handler if you want to prevent warning about no handlers
-        logger.addHandler(logging.NullHandler())
-        
-       
-    
-    @staticmethod
-    def _get_best_fit(fitter, x, y):
-        """
-        Utility per ottenere il miglior fit.
-        """
-        fitting_results = fitter.polynomial_fit(x, y)
-        return fitter.select_best_fit(fitting_results)
-    
     def test_normalization(self, fitter):
         
         """ 
@@ -727,7 +691,7 @@ class TestPolynomialFitEdgeCases:
             assert isinstance(error_result['error_message'], str)
             assert len(error_result['error_message']) > 0
 
-class TestPolynomialProprietyBased:
+class TestPolynomialPropertyBased:
     """Tests best fit for the polynomial_fit method with propriety-based test"""
     
     @pytest.fixture(scope="class")
@@ -854,5 +818,450 @@ class TestPolynomialProprietyBased:
         degree = len(coeffs) - 1
 
         assert degree == 4  # Should choose quartic fit
+    
+    
+    @settings(deadline=None, max_examples = 50, derandomize=True)
+    @given(
+        x_min=st.integers(min_value=0, max_value=65000),
+        x_max=st.integers(min_value=2, max_value=65535),
+        n_points=st.integers(min_value=20, max_value=100)
+    )
+    def test_polynomial_fits_hypothesis(self, fitter, x_min, x_max, n_points):
+        """Property-based tests for polynomial fitting across multiple degrees.
+        
+        Tests if the fitter correctly handles different polynomial degrees
+        with randomly generated input ranges and point counts.
+        GIVEN a range of x values and a number of data points.
+        WHEN polynomial fitting is applied to different polynomial degrees.
+        THEN the fitter should correctly identify the expected polynomial degree.
+        """
+        assume(x_max > x_min)
+        assume(x_max - x_min > 1)
+        
+        x = np.linspace(x_min, x_max, n_points)
+        
+        # Test different polynomial degrees
+        test_cases = [
+            (1, [2, 1], "linear"),
+            (2, [3, 2, 1], "quadratic"),
+            (3, [4, 3, 2, 1], "cubic"),
+            (4, [5, 4, 3, 2, 1], "quartic")
+        ]
+        
+        for degree, expected_coeffs, name in test_cases:
+            # Generate polynomial of specified degree
+            y = sum(coef * x**(deg) for deg, coef in enumerate(expected_coeffs[::-1]))
+            
+            best_funct, coeffs, score, fitting_results = self._get_best_fit(fitter, x, y)
+            fitted_degree = len(coeffs) - 1
+            
+            assert fitted_degree == degree, \
+                f"Failed to identify {name} function (expected degree {degree}, got {fitted_degree})"
+                
+        @settings(
+            deadline=None, derandomize=True, max_examples = 50)  
+        
+        @given(
+            x_min=st.integers(min_value=0, max_value=50000),
+            x_max=st.integers(min_value=10, max_value=65535),
+            n_points=st.integers(min_value=16, max_value=100)
+        )
+        def test_polynomial_fits_with_noise(self, fitter, x_min, x_max, n_points):
+            """Property-based tests for polynomial fitting across multiple degrees with noise.
+            
+            Tests if the fitter correctly identifies polynomial degrees in the presence
+            of Gaussian noise. Uses a standard noise level of 0.1 * std(y) to ensure
+            the noise scale is appropriate for the data range.
+            GIVEN polynomial functions with low-level noise.
+            WHEN polynomial fitting is performed.
+            THEN the fitter should correctly estimate the polynomial degree within an acceptable range.
+            """
+            assume(x_max > x_min)
+            assume(x_max - x_min > 1)
+            
+            x = np.linspace(x_min, x_max, n_points)
+                    
+            # Test cases for different polynomial degrees
+            test_cases = [
+                (1, [2, 1], "linear"),
+                (2, [3, 2, 1], "quadratic"),
+                (3, [4, 3, 2, 1], "cubic"),
+                (4, [5, 4, 3, 2, 1], "quartic")
+            ]
+            
+            np.random.seed(42)  # For reproducibility
+            for degree, expected_coeffs, name in test_cases:
+                noise_std = 0.1
+                noise = np.random.normal(0, noise_std, size=len(x))
+                x_noisy = x * (1 + noise)
+                y_noisy = np.polyval(expected_coeffs[::-1], x_noisy)
+                if np.max(x_noisy) <= 65535: 
+                    result = self._get_best_fit(fitter, x_noisy, y_noisy)
+                    best_funct, coeffs, score, fitting_results = result
+                    fitted_degree = len(coeffs) - 1
+                # Assertions
+                    assert degree == fitted_degree, \
+                        f"Failed to identify {name} function with noise (expected degree {degree}, got {fitted_degree})"
+                
+
+
+# Define test cases with descriptive IDs
+EDGE_TEST_CASES = [
+    pytest.param(0, 65530, 100, id="boundary-full-range"),
+    pytest.param(50000, 65530, 20, id="large-values-sparse"),
+    pytest.param(0, 1, 20, id="small-values-sparse"),
+    pytest.param(0, 1000, 16, id="medium-range-sparse"),
+    pytest.param(0, 1000, 1000, id="medium-range-dense")
+]
+
+class TestPolynomialFitsEdgeCases:
+    
+    @pytest.fixture(scope="class")
+    def fitter(self):
+        # Assuming the function is part of a class called CurveFitter
+        return CurveFitter()
+    
+    @classmethod
+    def setup_class(cls):
+        # Suppress all warnings
+        warnings.filterwarnings("ignore")
+        
+        
+        logger = logging.getLogger()
+        logger.setLevel(logging.CRITICAL)  # Only show CRITICAL logs
+        
+        # Remove any existing handlers to prevent double logging
+        for handler in logger.handlers[:]:
+            logger.removeHandler(handler)
+            
+        # Add a null handler to prevent warning about no handlers
+        logger.addHandler(logging.NullHandler())
+    
+    @staticmethod
+    def _get_best_fit(fitter, x, y, mode=ProcessingMode.PV):
+        """
+        Utility per ottenere il miglior fit.
+        """
+        fitting_results = fitter.polynomial_fit(x, y)
+        return fitter.select_best_fit(fitting_results)
+    
+    @pytest.mark.parametrize(
+        "x_min, x_max, n_points",
+        EDGE_TEST_CASES,
+    )
+    def test_linear_fit_edge_cases(self, fitter, x_min, x_max, n_points):
+        """
+        Verify that the polynomial fitter correctly identifies linear functions.
+        
+        GIVEN: A set of x values and corresponding y values defined by a linear function y = 2x + 1.
+        WHEN: The polynomial fitting function is applied to the dataset.
+        THEN: The fitter should correctly identify the polynomial as a linear function (degree 1),
+              recover the coefficients [2, 1] with high precision, and achieve a nearly perfect fit score.
+        """
+        x = np.linspace(x_min, x_max, n_points)
+        y = 2*x + 1
+        best_funct, coeffs, score, fitting_results = self._get_best_fit(fitter, x, y)
+        degree = len(coeffs) - 1 
+        assert degree == 1  # Should choose linear fit
+        assert_array_almost_equal(coeffs, [2, 1], decimal=6)  # Should find correct coefficients
+        assert score < 1e-3  # Should have nearly perfect fit
+        
+    @pytest.mark.parametrize(
+        "x_min, x_max, n_points",
+        EDGE_TEST_CASES,
+    )
+    def test_quadratic_fit_edge_cases(self, fitter, x_min, x_max, n_points):
+        """
+        Verify that the polynomial fitter correctly identifies quadratic functions.
+        
+        GIVEN: A set of x values and corresponding y values defined by a quadratic function y = 3x² + 2x + 1.
+        WHEN: The polynomial fitting function is applied to the dataset.
+        THEN: The fitter should correctly identify the polynomial as quadratic (degree 2).
+        """
+        x = np.linspace(x_min, x_max, n_points)
+        y = 3*x**2 + 2*x + 1
+        best_funct, coeffs, score, fitting_results = self._get_best_fit(fitter, x, y)
+        degree = len(coeffs) - 1
+
+        assert degree == 2, f"Expected quadratic fit (degree 2), got degree {degree}"
+    
+    @pytest.mark.parametrize(
+        "x_min, x_max, n_points",
+        EDGE_TEST_CASES,
+    )
+
+    def test_quadratic_fit_edge_cases_with_noise(self, fitter, x_min, x_max, n_points):
+        """
+        Verify that the polynomial fitter correctly identifies quadratic functions in the presence of noise.
+        
+        GIVEN: A set of x values with small multiplicative noise and corresponding y values following y = 3x² + 2x + 1.
+        WHEN: The polynomial fitting function is applied to the noisy dataset.
+        THEN: The fitter should still correctly identify the polynomial as quadratic (degree 2).
+        """
+        x = np.linspace(x_min, x_max, n_points)
+
+        # Generate noise proportional to x values
+        noise_std = 0.1
+        noise = np.random.normal(0, noise_std, size=len(x))
+        x_noisy = x * (1 + noise)  # Multiplicative noise 
+        coefficients = [3, 2, 1]
+        y_noisy = np.polyval(coefficients[::-1], x_noisy)
+        if np.max(x_noisy) <= 65535:
+            best_funct, coeffs, score, fitting_results = self._get_best_fit(fitter, x_noisy, y_noisy)
+            degree = len(coeffs) - 1
+    
+            assert degree == 2, f"Expected quadratic fit (degree 2), got degree {degree}"
+
+
+    @pytest.mark.parametrize(
+        "x_min, x_max, n_points",
+        EDGE_TEST_CASES,
+    )
+    def test_cubic_fit_edge_cases(self, fitter, x_min, x_max, n_points):
+        """
+        Verify that the polynomial fitter correctly identifies cubic functions.
+        
+        GIVEN: A set of x values and corresponding y values defined by a cubic function y = 4*x**3 + 3*x**2 + 2*x + 1.
+        WHEN: The polynomial fitting function is applied to the dataset.
+        THEN: The fitter should correctly identify the polynomial as cubic (degree 3).
+        """
+        x = np.linspace(x_min, x_max, n_points)
+        y = 4*x**3 + 3*x**2 + 2*x + 1
+        best_funct, coeffs, score, fitting_results = self._get_best_fit(fitter, x, y)
+        degree = len(coeffs) - 1
+
+        assert degree == 3, f"Expected cubic fit (degree 3), got degree {degree}"
+
+    @pytest.mark.parametrize(
+        "x_min, x_max, n_points",
+        EDGE_TEST_CASES,
+    )
+    def test_cubic_fit_edge_cases_with_noise(self, fitter, x_min, x_max, n_points):
+        """
+        Verify that the polynomial fitter correctly identifies cubic functions in the presence of noise.
+        
+        GIVEN: A set of x values with small multiplicative noise and corresponding y values following y = 4*x**3 + 3*x**2 + 2*x + 1.
+        WHEN: The polynomial fitting function is applied to the noisy dataset.
+        THEN: The fitter should still correctly identify the polynomial as cubic (degree 3).
+        """
+        x = np.linspace(x_min, x_max, n_points)
+        # Generate noise proportional to x values
+        noise_std = 0.1
+        noise = np.random.normal(0, noise_std, size=len(x))
+        x_noisy = x * (1 + noise)  # Multiplicative noise 
+        coefficients = [4, 3, 2, 1]
+        y_noisy = np.polyval(coefficients[::-1], x_noisy)
+        if np.max(x_noisy) <= 65535:
+            best_funct, coeffs, score, fitting_results = self._get_best_fit(fitter, x_noisy, y_noisy)
+    
+            degree = len(coeffs) - 1
+    
+            assert degree == 3, f"Expected cubic fit (degree 3), got degree {degree}"
+
+    @pytest.mark.parametrize(
+        "x_min, x_max, n_points",
+        EDGE_TEST_CASES,
+    )
+    def test_quartic_fit_edge_cases(self, fitter, x_min, x_max, n_points):
+        """
+        Verify that the polynomial fitter correctly identifies quartic functions.
+        
+        GIVEN: A set of x values and corresponding y values defined by a quartic function y =5*x**4+ 4*x**3 + 3*x**2 + 2*x + 1.
+        WHEN: The polynomial fitting function is applied to the dataset.
+        THEN: The fitter should correctly identify the polynomial as quartic (degree 4).
+        """
+        x = np.linspace(x_min, x_max, n_points)
+        y = 5*x**4 + 4*x**3 + 3*x**2 + 2*x + 1
+        best_funct, coeffs, score, fitting_results = self._get_best_fit(fitter, x, y)
+        degree = len(coeffs) - 1
+
+        assert degree == 4, f"Expected quartic fit (degree 4), got degree {degree}"
+
+
+    @pytest.mark.parametrize(
+        "x_min, x_max, n_points",
+        EDGE_TEST_CASES,
+    )
+    def test_quartic_fit_edge_cases_with_noise(self, fitter, x_min, x_max, n_points):
+        """
+        Verify that the polynomial fitter correctly identifies quartic functions in the presence of noise.
+        
+        GIVEN: A set of x values with small multiplicative noise and corresponding y values following y = 5*x**4+4*x**3 + 3*x**2 + 2*x + 1.
+        WHEN: The polynomial fitting function is applied to the noisy dataset.
+        THEN: The fitter should still correctly identify the polynomial as quartic (degree 4).
+        """
+        x = np.linspace(x_min, x_max, n_points)
+        # Generate noise proportional to x values
+        noise_std = 0.1
+        noise = np.random.normal(0, noise_std, size=len(x))
+        x_noisy = x * (1 + noise)  # Multiplicative noise 
+        coefficients = [5, 4, 3, 2, 1]
+        y_noisy = np.polyval(coefficients[::-1], x_noisy)
+        if np.max(x_noisy) <= 65535:
+            best_funct, coeffs, score, fitting_results = self._get_best_fit(fitter, x_noisy, y_noisy)
+    
+            degree = len(coeffs) - 1
+    
+            assert degree == 4, f"Expected cubic fit (degree 3), got degree {degree}"  
+    
+    def test_polynomial_fits_standard_cases(self, fitter):
+        """
+        Standard test cases for polynomial fitting with predefined scenarios
+        to cover basic functionality without randomness
+        GIVEN specific polynomial functions without noise.
+        WHEN polynomial fitting is performed.
+        THEN the fitter should return the correct polynomial degree
+        """
+        # Test cases with clean, noise-free data
+        test_cases = [
+            # (x_min, x_max, n_points, coefficients, expected_degree)
+            (0, 100, 50, [2, 1], 1),              # Linear
+            (0, 100, 50, [3, 2, 1], 2),            # Quadratic
+            (0, 100, 50, [4, 3, 2, 1], 3),         # Cubic
+            (0, 100, 50, [5, 4, 3, 2, 1], 4)       # Quartic
+        ]
+        
+        for x_min, x_max, n_points, coefficients, expected_degree in test_cases:
+            # Generate x values
+            x = np.linspace(x_min, x_max, n_points)
+            
+            # Generate y values using coefficients
+            y = np.polyval(coefficients[::-1], x)
+            
+            # Perform curve fitting
+            best_funct, fitted_coeffs, score, fitting_results = self._get_best_fit(fitter, x, y)
+            
+            # Check fitted degree
+            fitted_degree = len(fitted_coeffs) - 1
+            
+            # Assertions
+            assert fitted_degree == expected_degree, (
+                f"Incorrect polynomial degree for coefficients {coefficients}. "
+                f"Expected {expected_degree}, got {fitted_degree}"
+            )
+            
+
+
+    @pytest.mark.parametrize("x_min,x_max,n_points,coefficients,expected_degree,name", [
+        (0, 1000, 50, [2, 1], 1, "linear"),              # Linear
+        (0, 1000, 50, [3, 2, 1], 2, "quadratic"),        # Quadratic
+        (0, 1000, 50, [4, 3, 2, 1], 3, "cubic"),         # Cubic
+        (0, 1000, 50, [5, 4, 3, 2, 1], 4, "quartic")     # Quartic
+    ])
+    def test_polynomial_fits_standard_cases_with_noise(self, fitter, x_min, x_max, n_points, 
+                                            coefficients, expected_degree, name):
+        """
+        Parametrized test for polynomial fitting with low-level noise
+        GIVEN polynomial functions with low-level noise.
+        WHEN polynomial fitting is performed.
+        THEN the fitter should correctly estimate the polynomial degree within an acceptable range.
+        """
+        # Set random seed for reproducibility
+        np.random.seed(42)
+        
+        # Generate x values
+        x = np.linspace(x_min, x_max, n_points)
+
+        # Generate noise proportional to x values
+        noise_std = 0.1
+        noise = np.random.normal(0, noise_std, size=len(x))
+        x_noisy = x * (1 + noise)  # Multiplicative noise 
+        y_noisy = np.polyval(coefficients[::-1], x_noisy)
+       
+        # Perform curve fitting
+        best_funct, fitted_coeffs, score, fitting_results = self._get_best_fit(fitter, x_noisy, y_noisy)
+        
+        # Check fitted degree
+        fitted_degree = len(fitted_coeffs) - 1
+        
+        # Assertions
+        assert fitted_degree == expected_degree, (
+            f"Incorrect polynomial degree for {name} function. "
+            f"Expected {expected_degree}, got {fitted_degree}"
+        )
+
+    @pytest.mark.parametrize("true_degree,coeffs,polynomial_type", [
+        (1, [2, 1], "linear"),
+        (2, [3, 2, 1], "quadratic"),
+        (3, [4, 3, 2, 1], "cubic"),
+        (4, [5, 4, 3, 2, 1], "quartic")
+    ])
+    @pytest.mark.parametrize("noise_factor", [0.01, 0.05, 0.1, 0.2, 0.5])
+    def test_noise_impact_on_degree_selection(self, fitter, true_degree, coeffs, polynomial_type, noise_factor):
+        """
+        Parametrized test to examine noise impact on degree selection
+        
+        GIVEN a polynomial function with varying levels of noise.
+        WHEN polynomial fitting is applied.
+        THEN the fitter should correctly estimate the polynomial degree within a reasonable threshold.
+
+        """
+        # Generate x values
+        x = np.linspace(0, 1000, 50)
+        
+        # Set consistent random seed for reproducibility
+        np.random.seed(42)
+        
+        # Add noise
+        noise = np.random.normal(0, noise_factor, size=len(x))
+        x_noisy = x * (1 + noise)  # Multiplicative noise 
+        
+        if np.max(x_noisy) <= 65535: 
+            # Generate clean polynomial data
+            y_noisy = sum(coef * x_noisy**(deg) for deg, coef in enumerate(coeffs[::-1]))
+    
+            
+            # Perform curve fitting
+            best_funct, fitted_coeffs, score, _ = self._get_best_fit(fitter, x_noisy, y_noisy)
+            fitted_degree = len(fitted_coeffs) - 1
+            
+            # Assertions
+            if noise_factor <= 0.1:  # Check for moderate noise levels
+                assert fitted_degree == true_degree, (
+                    f"Degree selection incorrect for {polynomial_type} function. "
+                    f"Noise level: {noise_factor}, "
+                    f"Expected degree: {true_degree}, "
+                    f"Fitted degree: {fitted_degree}"
+                )
+            
+            # Additional optional checks
+            assert fitted_degree <= true_degree + 1, (
+                f"Fitted degree significantly higher than expected for {polynomial_type}. "
+                f"Noise level: {noise_factor}"
+            )
+    
+    @pytest.mark.parametrize("x_min, x_max, n_points",
+            EDGE_TEST_CASES,
+        )
+    @settings(
+        deadline=None, derandomize=True, max_examples = 50)  
+    @given(
+        coefficients=st.lists(
+            st.floats(min_value=-100, max_value=100).filter(lambda x: abs(x) >= 1e-3), 
+            min_size=2, 
+            max_size=5
+        )
+    )
+    def test_polynomial_fit(self, fitter, x_min, x_max, n_points, coefficients):
+        """
+        Test polynomial fitting with various coefficient sets.
+        
+        GIVEN a range of x values and a list of polynomial coefficients.
+        WHEN generating a polynomial using these coefficients and fitting a curve to it.
+        THEN the identified polynomial degree should match the expected degree.
+        """
+        # Additional explicit filtering
+        meaningful_coeffs = [coeff for coeff in coefficients if abs(coeff) >= 1e-7]
+        
+        # Skip if no meaningful coefficients remain
+        assume(len(meaningful_coeffs) >= 2)
+        x = np.linspace(x_min, x_max, n_points)
+        # Create polynomial using coefficients
+        y = np.polyval(coefficients[::-1], x)  # [::-1] because np.polyval expects coefficients in ascending order
+        degree_expected = len(coefficients) - 1 
+        best_funct, fitted_coeffs, score, fitting_results = self._get_best_fit(fitter, x, y)
+        degree_fit = len(fitted_coeffs) - 1
+        
+        assert degree_expected == degree_fit   # Should identify correct degree
 
     
