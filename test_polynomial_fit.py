@@ -679,26 +679,51 @@ class TestPolynomialFitEdgeCases:
         fitting_results = fitter.polynomial_fit(x, y)
         return fitter.select_best_fit(fitting_results)
     
-    @pytest.mark.parametrize("x_min, x_max, n_points", [
-        (0, 65535, 100),     # boundary_case
-        (50000, 65535, 10),  # large_values
-        (0, 1, 10),          # small_values
-        (0, 1000, 15),       # sparse_data
-        (0, 1000, 1000),     # dense_data
-    ])
-    
     def test_normalization(self, fitter):
         
-    
         """ 
+        Test polynomial fitting with data requiring normalization.
         GIVEN: Data with large x values
         WHEN: polynomial_fit is called
         THEN: Should handle normalization without errors.
         """
-        x = np.array([1000, 2000, 3000, 4000, 5000])
-        y = np.array([2, 3, 5, 7, 11])
+        # Test with large x values to verify normalization
+        x_large = np.linspace(1e6, 1e6 + 100, 50)
+        y_large = 2 * x_large + 1
         
-        best_funct, coeffs, score, fitting_results = self._get_best_fit(fitter, x, y, max_degree=4)
+        fitting_results = self._get_best_fit(x_large, y_large)
+        
+        # Verify we got results
+        assert fitting_results is not None
+        assert len(fitting_results) > 0
+        
+        # Get the linear fit result
+        linear_fit = next(result for result in fitting_results 
+                         if result['function'] == 'polynomial_degree_1')
+        
+        assert linear_fit['success']
+        assert linear_fit['degree'] == 1
+        
+        
+    @settings(max_examples=25)
+    @given(
+        x_min=st.integers(min_value=0, max_value=65000),
+        x_max=st.integers(min_value=2, max_value=65535),
+        n_points=st.integers(min_value=15, max_value=100)
+    )
+    def test_linear_fit_hypotesis(self, fitter, x_min, x_max, n_points):
+        """
+        Verify that a linear function is correctly identified in a randomized dataset.
+
+        GIVEN: A randomly generated dataset following the equation y = 2x + 1.
+        WHEN: The function attempts to fit a model to the dataset.
+        THEN: The best-fit function should be linear, with a degree of 1.
+        """
+        assume(x_max > x_min)
+        assume(x_max - x_min > 1)
+        x = np.linspace(x_min, x_max, n_points)
+        y = 2*x + 1
+        best_funct, coeffs, score, fitting_results = self._get_best_fit(fitter, x, y)
         degree = len(coeffs) - 1 
         
         assert degree > 0  # Should find a polynomial fit
