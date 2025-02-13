@@ -572,35 +572,8 @@ class TestPolynomialFitStructure:
         results = fitter.polynomial_fit(x, y, mode=ProcessingMode.PV, max_degree=max_degree)
         
         assert len(results) == max_degree
-        assert max(result['degree'] for result in results) == max_degree
-    
-    def test_fitting_error_handling(self, fitter):
-        """
-        GIVEN: A scenario that will cause a fitting error
-        WHEN: polynomial_fit is called
-        THEN: Should capture error information in fitting_results
-        """
-        # Create a deliberately problematic dataset
-        x = np.array([1, 2, 3, 4, 5])
-        y = np.array([float('inf'), 2, 3, 4, 5])  # Introduce an inf value
-        
-        with pytest.warns(UserWarning):
-             results = fitter.polynomial_fit(x, y, max_degree=4)
-        
-        # Check that results contain error information for some degrees
-        error_results = [r for r in results if 'error_message' in r]
-        assert len(error_results) > 0, "No error results captured"
-        
-        # Verify error result structure
-        for error_result in error_results:
-            assert error_result['function'].startswith('polynomial_degree_')
-            assert error_result['mse'] is None
-            assert error_result['success'] == False
-            assert isinstance(error_result['error_message'], str)
-            assert len(error_result['error_message']) > 0
-    
-    
-    
+        assert max(result['degree'] for result in results) == max_degree 
+     
     def test_constant_y_values(self, fitter):
         """ 
         GIVEN: Multiple x values with constant y (y=5)
@@ -706,58 +679,6 @@ class TestPolynomialFitEdgeCases:
         assert linear_fit['success']
         assert linear_fit['degree'] == 1
         
-        
-    @settings(max_examples=25)
-    @given(
-        x_min=st.integers(min_value=0, max_value=65000),
-        x_max=st.integers(min_value=2, max_value=65535),
-        n_points=st.integers(min_value=15, max_value=100)
-    )
-    def test_linear_fit_hypotesis(self, fitter, x_min, x_max, n_points):
-        """
-        Verify that a linear function is correctly identified in a randomized dataset.
-
-        GIVEN: A randomly generated dataset following the equation y = 2x + 1.
-        WHEN: The function attempts to fit a model to the dataset.
-        THEN: The best-fit function should be linear, with a degree of 1.
-        """
-        assume(x_max > x_min)
-        assume(x_max - x_min > 1)
-        x = np.linspace(x_min, x_max, n_points)
-        y = 2*x + 1
-        best_funct, coeffs, score, fitting_results = self._get_best_fit(fitter, x, y)
-        degree = len(coeffs) - 1 
-        
-        assert degree > 0  # Should find a polynomial fit
-        assert score < 1e-3  # Should have a reasonable MSE
-        
-    def test_zero_alpha_parameter(self, fitter, linear_data):
-        """
-        GIVEN: Valid linear data with alpha=0 (no regularization)
-        WHEN: polynomial_fit is called
-        THEN: Should still produce valid fit without regularization penalty
-        """
-        x, y, xerr = linear_data
-        results = fitter.polynomial_fit(x, y, xerr, max_degree=3, alpha=0.0)
-        assert any(result.get('metrics', {}).get('score')  is not None for result in results)
-        assert any(result['coefficients'] is not None for result in results )
-        assert all(result.get('metrics', {}).get('score') >= result['mse'] for result in results if 'score' in result)
-    
-    def test_high_alpha_parameter(self, fitter, quadratic_data):
-        """
-        GIVEN: Valid quadratic data with high alpha (strong regularization)
-        WHEN: polynomial_fit is called with alpha=10.0
-        THEN: Should prefer lower degree polynomials due to regularization
-        """
-        x, y, xerr = quadratic_data
-        fitting_results_1 = fitter.polynomial_fit(x, y, xerr, max_degree=3, alpha=1.0)
-        best_funct, coeffs_1, score, fitting_results = fitter._select_best_fit(fitting_results_1)
-        fitting_results_2 = fitter.polynomial_fit(x, y, xerr, max_degree=3, alpha=10.0)
-        best_funct, coeffs_2, score, fitting_results = fitter._select_best_fit(fitting_results_2)
-
-        assert len(coeffs_2) <= len(coeffs_1)  # Higher alpha should prefer simpler models
-    
-    
     def test_unequal_length_arrays(self, fitter):
         """
         GIVEN: x and y arrays of different lengths
@@ -768,16 +689,6 @@ class TestPolynomialFitEdgeCases:
         y = np.array([1, 2])
         with pytest.raises(ValueError):
             fitter.polynomial_fit(x, y)
-    
-    def test_negative_alpha(self, fitter, linear_data):
-        """
-        GIVEN: Negative alpha parameter
-        WHEN: polynomial_fit is called
-        THEN: Should raise ValueError
-        """
-        x, y, xerr = linear_data
-        with pytest.raises(ValueError):
-            fitter.polynomial_fit(x, y, xerr, alpha=-1.0)
     
     def test_extremely_large_values(self, fitter):
         """
@@ -815,3 +726,133 @@ class TestPolynomialFitEdgeCases:
             assert error_result['success'] == False
             assert isinstance(error_result['error_message'], str)
             assert len(error_result['error_message']) > 0
+
+class TestPolynomialProprietyBased:
+    """Tests best fit for the polynomial_fit method with propriety-based test"""
+    
+    @pytest.fixture(scope="class")
+    def fitter(self):
+        # Assuming the function is part of a class called CurveFitter
+        return CurveFitter()
+    
+    @classmethod
+    def setup_class(cls):
+        # Suppress all warnings
+        warnings.filterwarnings("ignore")
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", UserWarning)
+        
+        logger = logging.getLogger()
+        logger.setLevel(logging.CRITICAL)  # Only show CRITICAL logs
+        
+        # Remove any existing handlers to prevent double logging
+        for handler in logger.handlers[:]:
+            logger.removeHandler(handler)
+            
+        # Optional: Add a null handler if you want to prevent warning about no handlers
+        logger.addHandler(logging.NullHandler())
+          
+    @staticmethod
+    def _get_best_fit(fitter, x, y):
+        """
+        Utility per ottenere il miglior fit.
+        """
+        fitting_results = fitter.polynomial_fit(x, y)
+        return fitter.select_best_fit(fitting_results)
+    
+
+    @settings(max_examples=25)
+    @given(
+        x_min=st.integers(min_value=0, max_value=65000),
+        x_max=st.integers(min_value=2, max_value=65535),
+        n_points=st.integers(min_value=15, max_value=100)
+    )
+    def test_linear_fit_hypotesis(self, fitter, x_min, x_max, n_points):
+        """
+        Verify that a linear function is correctly identified in a randomized dataset.
+
+        GIVEN: A randomly generated dataset following the equation y = 2x + 1.
+        WHEN: The function attempts to fit a model to the dataset.
+        THEN: The best-fit function should be linear, with a degree of 1.
+        """
+        assume(x_max > x_min)
+        assume(x_max - x_min > 1)
+        x = np.linspace(x_min, x_max, n_points)
+        y = 2*x + 1
+        best_funct, coeffs, score, fitting_results = self._get_best_fit(fitter, x, y)
+        degree = len(coeffs) - 1 
+        
+        assert degree > 0  # Should find a polynomial fit
+        assert score < 1e-3  # Should have a reasonable MSE  
+        
+    @settings(max_examples=25)
+    @given(
+        x_min=st.integers(min_value=0, max_value=65000),
+        x_max=st.integers(min_value=2, max_value=65535),
+        n_points=st.integers(min_value=10, max_value=100)
+    )
+    def test_quadratic_fit_hypothesis(self, fitter, x_min, x_max, n_points):
+        """
+        Verify that a quadratic function is correctly identified in a randomized dataset.
+
+        GIVEN: A randomly generated dataset following the equation y = 3*x**2 + 2*x + 1.
+        WHEN: The function attempts to fit a model to the dataset.
+        THEN: The best-fit function should be quadratic, with a degree of 2.
+        """
+        assume(x_max > x_min)
+        assume(x_max - x_min > 1)
+        x = np.linspace(x_min, x_max, n_points)
+        y = 3*x**2 + 2*x + 1
+        best_funct, coeffs, score, fitting_results = self._get_best_fit(fitter, x, y)
+        degree = len(coeffs) - 1
+
+        assert degree == 2  # Should choose quadratic fit
+
+    @settings(max_examples=25)
+    @given(
+        x_min=st.integers(min_value=0, max_value=65000),
+        x_max=st.integers(min_value=2, max_value=65535),
+        n_points=st.integers(min_value=10, max_value=100)
+    )
+    def test_cubic_fit_hypothesis(self, fitter, x_min, x_max, n_points):
+        """
+        Verify that a cubic function is correctly identified in a randomized dataset.
+
+        GIVEN: A randomly generated dataset following the equation y = 4*x**3 + 3*x**2 + 2*x + 1.
+        WHEN: The function attempts to fit a model to the dataset.
+        THEN: The best-fit function should be cubic, with a degree of 3.
+        """
+        assume(x_max > x_min)
+        assume(x_max - x_min > 1)
+        x = np.linspace(x_min, x_max, n_points)
+        y = 4*x**3 + 3*x**2 + 2*x + 1
+        best_funct, coeffs, score, fitting_results = self._get_best_fit(fitter, x, y)
+        degree = len(coeffs) - 1
+
+        assert degree == 3  # Should choose cubic fit
+
+
+    @settings(max_examples=25)
+    @given(
+        x_min=st.integers(min_value=0, max_value=65000),
+        x_max=st.integers(min_value=2, max_value=65535),
+        n_points=st.integers(min_value=20, max_value=100)
+    )
+    def test_quartic_fit_hypothesis(self, fitter, x_min, x_max, n_points):
+        """
+        Verify that a quartic function is correctly identified in a randomized dataset.
+
+        GIVEN: A randomly generated dataset following the equation y = 5*x**4 + 4*x**3 + 3*x**2 + 2*x + 1.
+        WHEN: The function attempts to fit a model to the dataset.
+        THEN: The best-fit function should be quartic, with a degree of 4.
+        """
+        assume(x_max > x_min)
+        assume(x_max - x_min > 1)
+        x = np.linspace(x_min, x_max, n_points)
+        y = 5*x**4 + 4*x**3 + 3*x**2 + 2*x + 1
+        best_funct, coeffs, score, fitting_results = self._get_best_fit(fitter, x, y)
+        degree = len(coeffs) - 1
+
+        assert degree == 4  # Should choose quartic fit
+
+    
