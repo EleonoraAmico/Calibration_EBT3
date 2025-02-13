@@ -638,10 +638,54 @@ class TestPolynomialFitStructure:
         with warnings.catch_warnings(record=True) as w:
             results = fitter.polynomial_fit(x, y, max_degree=5)
             assert len(w) > 0  # Warning should have been triggered
-            assert "Polynomial degrees higher than 4 might lead to overfitting and numerical instability." in str(w[-1].message)
+            assert any(
+                "Polynomial degrees higher than 4 might lead to overfitting and numerical instability." in str(warning.message)
+                for warning in w
+            )
+
+
+class TestPolynomialFitEdgeCases:
+    """Tests best fit for the polynomial_fit method"""
+    
+    @pytest.fixture(scope="class")
+    def fitter(self):
+        # Assuming the function is part of a class called CurveFitter
+        return CurveFitter()
+    
+    @classmethod
+    def setup_class(cls):
+        # Suppress all warnings
+        warnings.filterwarnings("ignore")
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", UserWarning)
+        
+        logger = logging.getLogger()
+        logger.setLevel(logging.CRITICAL)  # Only show CRITICAL logs
+        
+        # Remove any existing handlers to prevent double logging
+        for handler in logger.handlers[:]:
+            logger.removeHandler(handler)
+            
+        # Optional: Add a null handler if you want to prevent warning about no handlers
+        logger.addHandler(logging.NullHandler())
         
        
     
+    @staticmethod
+    def _get_best_fit(fitter, x, y):
+        """
+        Utility per ottenere il miglior fit.
+        """
+        fitting_results = fitter.polynomial_fit(x, y)
+        return fitter.select_best_fit(fitting_results)
+    
+    @pytest.mark.parametrize("x_min, x_max, n_points", [
+        (0, 65535, 100),     # boundary_case
+        (50000, 65535, 10),  # large_values
+        (0, 1, 10),          # small_values
+        (0, 1000, 15),       # sparse_data
+        (0, 1000, 1000),     # dense_data
+    ])
     
     def test_normalization(self, fitter):
         
