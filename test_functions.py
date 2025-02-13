@@ -6,7 +6,7 @@ Created on Thu Jan 16 10:32:33 2025
 """
 
 import numpy as np
-from Calibration_EBT3 import CurveFitter
+from Calibration_EBT3 import CurveFitter, ProcessingMode
 import pytest
 from hypothesis import given, assume, settings, HealthCheck, strategies as st
 import random
