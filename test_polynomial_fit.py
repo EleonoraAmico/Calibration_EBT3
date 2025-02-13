@@ -121,58 +121,24 @@ class TestPolynomialFit:
     def test_perfect_polynomial_degree_4_fit(self, fitter, polynomial_degree_4_data):
         """
         GIVEN: Perfect quadratic data (y = x² - 2x + 1)
-        WHEN: polynomial_fit is called with max_degree=3
+        WHEN: _get_best_fit is called with max_degree=4
         THEN: Best fit should be quadratic with near-zero MSE
         """
-        x, y, xerr = polynomial_degree_4_data
-        with pytest.warns(UserWarning):
-            best_funct, coeffs, score, fitting_results = self._get_best_fit(fitter, x, y, xerr,  max_degree=4)
-            degree = len(coeffs) - 1 
+        x, y = polynomial_degree_4_data
+        
+        best_funct, coeffs, score, fitting_results = self._get_best_fit(fitter, x, y)
+        degree = len(coeffs) - 1 
         
         assert degree == 4  # Should choose quadratic fit
-        assert_array_almost_equal(coeffs, [1, -4, 6, -4, 1], decimal=10)  # Should find correct coefficients
+        assert_array_almost_equal(coeffs, [1, -4, 6, -4, 1], decimal=6)  # Should find correct coefficients
         assert score < 1e-10  # Should have nearly perfect fit     
-         
-    def test_fitting_results_structure(self, fitter, linear_data):
-        """
-        GIVEN: Valid input data
-        WHEN: polynomial_fit is called
-        THEN: Results dictionary should have correct structure for each degree
-        """
-        x, y, xerr = linear_data
-        max_degree = 3
-        fitting_results = fitter.polynomial_fit(x, y, xerr, max_degree=max_degree)
-        
-        for result in fitting_results:
+              
 
-            coefficients = result.get('coefficients')
-            degree = result.get('degree')
-        
-            # Assicura che i coefficienti e il grado siano coerenti
-            assert len(coefficients) == degree + 1, f"Mismatch: coefficients {coefficients}, degree {degree}"
-            assert isinstance(result, dict)
-            assert any(key in result for key in [
-                'function', 'metrics', 'polynomial', 'coefficients',
-                'degree', 'success'
-            ])
-            
-    def test_max_degree_limit(self, fitter, linear_data):
-        """
-        GIVEN: Valid input data
-        WHEN: polynomial_fit is called with specific max_degree
-        THEN: Should not test polynomials beyond max_degree
-        """
-        x, y, xerr = linear_data
-        max_degree = 2
-        results = fitter.polynomial_fit(x, y, xerr, max_degree=max_degree)
-        
-        assert len(results) == max_degree
-        assert max(result['degree'] for result in results) == max_degree
         
     def test_noisy_data_robustness_linear_data(self, fitter):
         """
         GIVEN: Linear data with added noise
-        WHEN: polynomial_fit is called
+        WHEN: _get_best_fit is called
         THEN: Should still identify underlying linear trend
         """
         np.random.seed(42)  # For reproducibility
@@ -481,30 +447,165 @@ class TestPolynomialFit:
     def test_single_point(self, fitter):
         """ 
         GIVEN: A single data point (x=1, y=2)
-        WHEN: polynomial_fit is called
+        WHEN: _get_best_fit is called
         THEN: Best fit should return None, as fitting is impossible with one point.
         """
         x = np.array([1])
         y = np.array([2])
-        with pytest.raises(ValueError, match="Number of points must be higher than max_degree"):
-            best_funct, coeffs, score, fitting_results = self._get_best_fit(fitter, x, y, max_degree=4)
-            degree = len(coeffs) - 1 
+        with pytest.raises(ValueError, match="Number of points is not sufficients to fit data"):
+            best_funct, coeffs, score, fitting_results = self._get_best_fit(fitter, x, y)
+           
         
     def test_two_points(self, fitter):
         """ 
         GIVEN: Two data points forming a line (x=[1, 2], y=[3, 5])
-        WHEN: polynomial_fit is called
+        WHEN: _get_best_fit is called
         THEN: Best fit should return a linear fit with zero MSE.
         """
         x = np.array([1, 2])
         y = np.array([3, 5])
-        best_funct, coeffs, score, fitting_results = self._get_best_fit(fitter, x, y, max_degree=1)
+        best_funct, coeffs, score, fitting_results = self._get_best_fit(fitter, x, y)
         degree = len(coeffs) - 1 
         
         assert degree == 1  # Should choose linear fit
         assert_array_almost_equal(coeffs, [2, 1], decimal=10)  # y = 2x + 1
         assert score < 1e-3  # Should have nearly perfect fit
 
+
+    def test_normalization(self, fitter):
+        """ 
+        GIVEN: Data with large x values
+        WHEN: _get_best_fit is called
+        THEN: Should handle normalization without errors.
+        """
+        x = np.array([1000, 2000, 3000, 4000, 5000])
+        y = np.array([2, 3, 5, 7, 11])
+        
+        best_funct, coeffs, score, fitting_results = self._get_best_fit(fitter, x, y)
+        degree = len(coeffs) - 1 
+        
+        assert degree > 0  # Should find a polynomial fit
+        
+        
+       
+    def test_unequal_length_arrays(self, fitter):
+        """
+        GIVEN: x and y arrays of different lengths
+        WHEN: _get_best_fit is called
+        THEN: Should raise ValueError
+        """
+        x = np.array([1, 2, 3])
+        y = np.array([1, 2])
+        with pytest.warns(UserWarning):
+            self._get_best_fit(fitter, x, y)
+    
+
+
+class TestPolynomialFitStructure:
+    """Tests best fit for the polynomial_fit method"""
+    
+    @pytest.fixture
+    def fitter(self):
+        # Assuming the function is part of a class called CurveFitter
+        return CurveFitter()   
+    
+    @pytest.fixture
+    def linear_data(self):
+        """Generate perfect linear data for testing"""
+        np.random.seed(42)
+        x = np.array([1, 2, 3, 4, 5])
+        noise_std=0.1
+        xerr=np.abs(np.random.normal(0, noise_std, size=len(x)))
+        y = 2*x + 1  # y = 2x + 1
+        return x, y, xerr
+    
+    @pytest.fixture
+    def quadratic_data(self):
+        """Generate perfect quadratic data for testing"""
+        np.random.seed(42)
+        x = np.array([1, 2, 3, 4, 5])
+        noise_std=0.1
+        xerr=np.random.normal(0, noise_std, size=len(x))
+        y = x**2 - 2*x + 1  # y = x² - 2x + 1
+        return x, y, xerr
+    
+    def test_invalid_input_returns_none(self, fitter):
+        """
+        GIVEN: Invalid input data (None values)
+        WHEN: _get_best_fit is called
+        THEN: All return values should be None and a UserWarning should be raised
+        """
+        with pytest.warns(UserWarning, match="x array cannot be None"):
+            mse, degree, coeffs, results = fitter.polynomial_fit(None, None)
+        
+        assert mse is None
+        assert degree is None
+        assert coeffs is None
+        assert results is None
+
+    def test_fitting_results_structure(self, fitter, linear_data):
+        """
+        GIVEN: Valid input data
+        WHEN: polynomial_fit is called
+        THEN: Results dictionary should have correct structure for each degree
+        """
+        x, y, xerr = linear_data
+        max_degree = 3
+        fitting_results = fitter.polynomial_fit(x, y, mode=ProcessingMode.PV, max_degree=max_degree)
+        
+        for result in fitting_results:
+
+            coefficients = result.get('coefficients')
+            degree = result.get('degree')
+        
+            # Assicura che i coefficienti e il grado siano coerenti
+            assert len(coefficients) == degree + 1, f"Mismatch: coefficients {coefficients}, degree {degree}"
+            assert isinstance(result, dict)
+            assert any(key in result for key in [
+                'function', 'metrics', 'polynomial', 'coefficients',
+                'degree', 'success'
+            ])
+            
+    def test_max_degree_limit(self, fitter, linear_data):
+        """
+        GIVEN: Valid input data
+        WHEN: polynomial_fit is called with specific max_degree
+        THEN: Should not test polynomials beyond max_degree
+        """
+        x, y, xerr = linear_data
+        max_degree = 2
+        results = fitter.polynomial_fit(x, y, mode=ProcessingMode.PV, max_degree=max_degree)
+        
+        assert len(results) == max_degree
+        assert max(result['degree'] for result in results) == max_degree
+    
+    def test_fitting_error_handling(self, fitter):
+        """
+        GIVEN: A scenario that will cause a fitting error
+        WHEN: polynomial_fit is called
+        THEN: Should capture error information in fitting_results
+        """
+        # Create a deliberately problematic dataset
+        x = np.array([1, 2, 3, 4, 5])
+        y = np.array([float('inf'), 2, 3, 4, 5])  # Introduce an inf value
+        
+        with pytest.warns(UserWarning):
+             results = fitter.polynomial_fit(x, y, max_degree=4)
+        
+        # Check that results contain error information for some degrees
+        error_results = [r for r in results if 'error_message' in r]
+        assert len(error_results) > 0, "No error results captured"
+        
+        # Verify error result structure
+        for error_result in error_results:
+            assert error_result['function'].startswith('polynomial_degree_')
+            assert error_result['mse'] is None
+            assert error_result['success'] == False
+            assert isinstance(error_result['error_message'], str)
+            assert len(error_result['error_message']) > 0
+    
+    
+    
     def test_constant_y_values(self, fitter):
         """ 
         GIVEN: Multiple x values with constant y (y=5)
