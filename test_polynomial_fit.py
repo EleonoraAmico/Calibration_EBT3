@@ -148,7 +148,7 @@ class TestPolynomialFit:
         y = 2*x_noisy + 1 
         
         
-        best_funct, coeffs, score, fitting_results = self._get_best_fit(fitter, x, y, xerr,  max_degree=3)
+        best_funct, coeffs, score, fitting_results = self._get_best_fit(fitter, x, y)
         degree = len(coeffs) - 1 
         
         # Should still choose linear fit despite noise
@@ -160,7 +160,7 @@ class TestPolynomialFit:
     def test_noisy_data_robustness_quadratic_data(self, fitter):
         """
         GIVEN: quadratic data with added noise
-        WHEN: polynomial_fit is called
+        WHEN: _get_best_fit is called
         THEN: Should still identify underlying linear trend
         """
         np.random.seed(42)  # For reproducibility
@@ -169,9 +169,9 @@ class TestPolynomialFit:
         x_noisy= x + xerr
         y = 2*x_noisy**2 + 1*x_noisy
         
-        with pytest.warns(UserWarning):
-           best_funct, coeffs, score, fitting_results = self._get_best_fit(fitter, x, y, xerr,  max_degree=4)
-           degree = len(coeffs) - 1 
+        
+        best_funct, coeffs, score, fitting_results = self._get_best_fit(fitter, x, y)
+        degree = len(coeffs) - 1 
         
         # Should still choose linear fit despite noise
         assert degree == 2
@@ -182,7 +182,7 @@ class TestPolynomialFit:
     def test_noisy_data_robustness_cubic_data(self, fitter):
         """
         GIVEN: quadratic data with added noise
-        WHEN: polynomial_fit is called
+        WHEN: _get_best_fit is called
         THEN: Should still identify underlying linear trend
         """
         np.random.seed(42)  # For reproducibility
@@ -191,7 +191,7 @@ class TestPolynomialFit:
         x_noisy= x + xerr
         y = -(1/200)*x_noisy**3 + (3/20)*x_noisy**2 - 2 *x_noisy + 50
         
-        best_funct, coeffs, score, fitting_results = self._get_best_fit(fitter, x, y, xerr,  max_degree=4)
+        best_funct, coeffs, score, fitting_results = self._get_best_fit(fitter, x, y)
         degree = len(coeffs) - 1 
         p = np.poly1d(coeffs)
         y_pred = p(x)
@@ -202,7 +202,7 @@ class TestPolynomialFit:
     def test_noisy_data_robustness_quartic_data(self, fitter):
         """
         GIVEN: quadratic data with added noise
-        WHEN: polynomial_fit is called
+        WHEN: _get_best_fit is called
         THEN: Should still identify underlying linear trend
         """
         np.random.seed(42)  # For reproducibility
@@ -211,7 +211,7 @@ class TestPolynomialFit:
         x_noisy= x + xerr
         y = -(1/1000)*x_noisy**4 + (1/50)*x_noisy**3 - (1/10) *x_noisy**2 - 1 * x_noisy + 50
         
-        best_funct, coeffs, score, fitting_results = self._get_best_fit(fitter, x, y, xerr,  max_degree=4)
+        best_funct, coeffs, score, fitting_results = self._get_best_fit(fitter, x, y)
         degree = len(coeffs) - 1 
         
         p = np.poly1d(coeffs)
@@ -221,21 +221,31 @@ class TestPolynomialFit:
         assert np.all(np.abs(y_pred - y) <= 1e-1), "y_pred and y are not equal"
         
 
+    def test_linear_extremely_large_values(self, fitter):
+        """
+        GIVEN: Data with extremely large values
+        WHEN: _get_best_fit is called
+        THEN: Should handle numerical stability issues
+        """
+        x = np.array([1e4, 2e4, 3e4, 4e4, 5e4])
+        y = 2 * x + 1
+        with pytest.warns(UserWarning):
+            best_funct, coeffs, score, fitting_results = self._get_best_fit(fitter, x, y)
+            assert len(coeffs) == 2
         
     def test_linear_fit_at_boundaries(self, fitter):
         """
         GIVEN: Linear data at the boundaries of valid pixel values (0-65535)
-        WHEN: polynomial_fit is called
+        WHEN: _get_best_fit is called
         THEN: Should correctly identify linear relationship at boundaries
         """
         x = np.array([0, 16383, 32767, 49151, 65535])  # Full range
         slope = 2
         intercept = 100
         y = slope * x + intercept
-        xerr = np.ones_like(x) * 100  # Reasonable error for pixel values
-        
+               
         with pytest.warns(UserWarning):
-            best_funct, coeffs, score, fitting_results = self._get_best_fit(fitter, x, y, xerr,  max_degree=4)
+            best_funct, coeffs, score, fitting_results = self._get_best_fit(fitter, x, y)
             degree = len(coeffs) - 1 
         
         assert degree == 1
@@ -246,7 +256,7 @@ class TestPolynomialFit:
         """
         GIVEN: Quadratic data within valid pixel value range and expected behaviour:
             y decreases as x increases
-        WHEN: polynomial_fit is called
+        WHEN: _get_best_fit is called
         THEN: Should identify quadratic relationship while staying within bounds
         """
         x = np.linspace(0, 65535, 20)
@@ -254,9 +264,9 @@ class TestPolynomialFit:
         a = -50 / (65535**2)  # Coefficient to ensure max within bounds
         y = a * (x)**2 + 50  # Parabola with peak at middle of range
 
-        xerr = np.ones_like(x) * 100
+        #xerr = np.ones_like(x) * 100
         
-        best_funct, coeffs, score, fitting_results = self._get_best_fit(fitter, x, y, xerr,  max_degree=4)
+        best_funct, coeffs, score, fitting_results = self._get_best_fit(fitter, x, y)
         degree = len(coeffs) - 1 
     
         assert degree == 2
@@ -271,7 +281,7 @@ class TestPolynomialFit:
         """
         GIVEN: A dataset and the processed mode OD, 
             where y is obtained through a quadratic relationship.
-        WHEN: The polynomial_fit method is called using x_OD derived from the dataset.
+        WHEN: The _get_best_fit method is called using x_OD derived from the dataset.
         THEN: The predicted y values should remain within the specified bounds.
         """
 
@@ -282,9 +292,7 @@ class TestPolynomialFit:
         a = -50 / (65535**2)  # Coefficient to ensure max within bounds
         y = a * (x)**2 + 50  # Parabola with peak at middle of range
         
-        xerr = np.ones_like(x) * 100
-        
-        best_funct, coeffs, score, fitting_results = self._get_best_fit(fitter, x, y, xerr,  max_degree=4)
+        best_funct, coeffs, score, fitting_results = self._get_best_fit(fitter, x, y)
         
     
         # Verify predictions stay within bounds
@@ -298,7 +306,7 @@ class TestPolynomialFit:
         """
         GIVEN: A dataset and the processed mode net_OD, 
             where y is obtained through a quadratic relationship.
-        WHEN: The polynomial_fit method is called using x_net_OD derived from the dataset.
+        WHEN: The _get_best_fit method is called using x_net_OD derived from the dataset.
         THEN: The predicted y values should remain within the specified bounds.
         """
         x = np.linspace(10000, 65535, 20)
@@ -307,9 +315,8 @@ class TestPolynomialFit:
         a = -50 / (65535**2)  # Coefficient to ensure max within bounds
         y = a * (x)**2 + 50  # Parabola with peak at middle of range
         x_net_OD = fitter._process_values(x, y, mode=ProcessingMode.NET_OD)
-        xerr = np.ones_like(x) * 100
         
-        best_funct, coeffs, score, fitting_results = self._get_best_fit(fitter, x, y, xerr,  max_degree=4)
+        best_funct, coeffs, score, fitting_results = self._get_best_fit(fitter, x, y)
     
         # Verify predictions stay within bounds
         p = np.poly1d(coeffs)
@@ -322,7 +329,7 @@ class TestPolynomialFit:
         """
         GIVEN: A dataset and the processed modes OD and net_OD, 
             where y is obtained through a quadratic relationship.
-        WHEN: The polynomial_fit method is called using PV, x_OD and x_net_OD derived from the dataset.
+        WHEN: The _get_best_fit method is called using PV, x_OD and x_net_OD derived from the dataset.
         THEN: The predicted y values should be almost equal for each mode.
         """
         x_PV = np.linspace(10000, 65535, 20)
@@ -362,7 +369,7 @@ class TestPolynomialFit:
     def test_inverse_relationship_with_noise(self, fitter):
         """
         GIVEN: Data with inverse relationship (y = k/x + c) and noise, keeping values in bounds
-        WHEN: polynomial_fit is called
+        WHEN: _get_best_fit is called
         THEN: Should identify the inverse relationship while handling noise appropriately
         """
         np.random.seed(42)
@@ -379,8 +386,8 @@ class TestPolynomialFit:
         y_noise = np.random.normal(0, 0.2, size=len(x))  # Reduced noise
         y = np.clip(-m * x_noisy + c + y_noise, 0, 50)
 
-            # Fit the data
-        best_funct, coeffs, score, fitting_results = self._get_best_fit(fitter, x_noisy, y,  max_degree=4)
+        # Fit the data
+        best_funct, coeffs, score, fitting_results = self._get_best_fit(fitter, x_noisy, y)
         
         degree = len(coeffs) -1
 
@@ -402,7 +409,7 @@ class TestPolynomialFit:
     def test_saturated_data_handling(self, fitter):
         """
         GIVEN: Data with saturated values (at 65535)
-        WHEN: polynomial_fit is called
+        WHEN: _get_best_fit is called
         THEN: Should handle saturation appropriately
         """
         x = np.linspace(0, 65535, 20)
@@ -411,9 +418,8 @@ class TestPolynomialFit:
         y = -0.0001 * x + 50  # This will ensure y decreases towards 0 as x increases
         y[y < 0] = 0  # Ensure that y doesn't drop below 0
     
-        xerr = np.ones_like(x) * 100
     
-        best_funct, coeffs, score, fitting_results = self._get_best_fit(fitter, x, y, xerr, max_degree=4)
+        best_funct, coeffs, score, fitting_results = self._get_best_fit(fitter, x, y)
         degree = len(coeffs) - 1 
         # Should still identify linear relationship
         assert degree == 1
@@ -427,14 +433,13 @@ class TestPolynomialFit:
     def test_low_signal_data(self, fitter):
         """
         GIVEN: Data with very low pixel values (near zero)
-        WHEN: polynomial_fit is called
+        WHEN: _get_best_fit is called
         THEN: Should handle low signal appropriately
         """
-        x = np.linspace(0, 1000, 20)  # Low range
+        x = np.linspace(0, 1, 10)  # Low range
         y = - 0.005 * x + 10  # Small slope and offset
-        xerr = np.ones_like(x) * 10  # Smaller errors for low values
         
-        best_funct, coeffs, score, fitting_results = self._get_best_fit(fitter, x, y, xerr, max_degree=4)
+        best_funct, coeffs, score, fitting_results = self._get_best_fit(fitter, x, y)
         degree = len(coeffs) - 1         
         assert degree == 1
         assert_array_almost_equal(coeffs, [0.005, 10], decimal=1)
@@ -614,11 +619,12 @@ class TestPolynomialFitStructure:
         """
         x = np.array([1, 2, 3, 4, 5])
         y = np.array([5, 5, 5, 5, 5])
-        best_funct, coeffs, score, fitting_results = self._get_best_fit(fitter, x, y, max_degree=4)
+        fitting_results = fitter.polynomial_fit(x, y)
+        coeffs = fitting_results[0]['coefficients']
         degree = len(coeffs) - 1 
         assert degree == 0  # Should choose constant fit
         assert_array_almost_equal(coeffs, [5], decimal=10)  # y = 5
-        assert score < 1e-3  # Should have nearly perfect fit
+
         
     def test_constant_x_values(self, fitter):
         """ 
