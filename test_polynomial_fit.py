@@ -23,12 +23,13 @@ class TestPolynomialFit:
         return CurveFitter()
     
     @staticmethod
-    def _get_best_fit(fitter, x, y, xerr = None, max_degree = 4):
+    def _get_best_fit(fitter, x, y, mode=ProcessingMode.PV):
         """
         Utility per ottenere il miglior fit.
         """
-        fitting_results = fitter.polynomial_fit(x, y, xerr, max_degree)
-        return fitter._select_best_fit(fitting_results)
+        fitting_results = fitter.polynomial_fit(x, y, mode=mode)
+        return fitter.select_best_fit(fitting_results)
+    
     
     @pytest.fixture
     def linear_data(self):
