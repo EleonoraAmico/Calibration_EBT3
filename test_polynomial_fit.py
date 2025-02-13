@@ -338,30 +338,18 @@ class TestPolynomialFit:
         y = a * (x_PV)**2 + 50  # Parabola with peak at middle of range
         x_net_OD = fitter._process_values(x_PV, y, mode=ProcessingMode.NET_OD)
         x_OD = fitter._process_values(x_PV, y, mode= ProcessingMode.OD)
-        print("x", x_PV)
-        print("x_OD", x_OD)
-        # fitter_PV = CurveFitter()
-        # fitter_OD = CurveFitter()
-        # fitter_net_OD = CurveFitter()
-        best_funct_PV, coeffs_PV, score_PV, fitting_results_PV = self._get_best_fit(fitter, x_PV, y,  max_degree=4)
-        best_funct_OD, coeffs_OD, score_OD, fitting_results_OD = self._get_best_fit(fitter, x_OD, y,  max_degree=4)
-        best_funct_net_OD, coeffs_net_OD, score, fitting_results_net_OD = self._get_best_fit(fitter, x_net_OD, y,  max_degree=4)
+        best_funct_PV, coeffs_PV, score_PV, fitting_results_PV = self._get_best_fit(fitter, x_PV, y)
+        best_funct_OD, coeffs_OD, score_OD, fitting_results_OD = self._get_best_fit(fitter, x_OD, y)
+        best_funct_net_OD, coeffs_net_OD, score, fitting_results_net_OD = self._get_best_fit(fitter, x_net_OD, y)
         # Verify predictions are the same for all x processing mode
         p = np.poly1d(coeffs_PV)
         y_pred_PV = p(x_PV)
         p = np.poly1d(coeffs_OD)
-
         y_pred_OD = p(x_OD)
-        print(len(y_pred_OD))
-        print(len(y))
         p = np.poly1d(coeffs_net_OD)
         y_pred_net_OD = p(x_net_OD)
-        print("y", y)
-        print("y_pred_OD", y_pred_OD)
-        print("coeffs_OD", coeffs_OD)
-        print("diff", np.abs(y_pred_OD - y))
         assert np.all(np.abs(y_pred_PV - y) <= 0.3), "y_pred_PV and y are not equal"
-        assert np.all(np.abs(y_pred_OD - y)<= 1), "y_pred_OD and y are not equal"
+        assert np.all(np.abs(y_pred_OD - y)<= 0.3), "y_pred_OD and y are not equal"
         assert np.all(np.abs(y_pred_net_OD - y) <= 0.3), "y_pred_net_OD and y are not equal"
         
         
