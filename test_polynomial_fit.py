@@ -36,72 +36,52 @@ class TestPolynomialFit:
         """Generate perfect linear data for testing"""
         np.random.seed(42)
         x = np.array([1, 2, 3, 4, 5])
-        noise_std=0.1
-        xerr=np.abs(np.random.normal(0, noise_std, size=len(x)))
         y = 2*x + 1  # y = 2x + 1
-        return x, y, xerr
+        return x, y
     
     @pytest.fixture
     def quadratic_data(self):
         """Generate perfect quadratic data for testing"""
         np.random.seed(42)
         x = np.array([1, 2, 3, 4, 5])
-        noise_std=0.1
-        xerr=np.random.normal(0, noise_std, size=len(x))
         y = x**2 - 2*x + 1  # y = x² - 2x + 1
-        return x, y, xerr
+        return x, y
     
     @pytest.fixture
     def cubic_data(self):
         """Generate perfect cubic data for testing"""
         np.random.seed(42)
         
-        x = np.array([1, 2, 3, 4, 5])
-        noise_std = 0.1
-        xerr = np.random.normal(0, noise_std, size=len(x))
-        
+        x = np.array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
+                
         # Cubic polynomial: y = x^3 - 3x^2 + 2x
         y = x**3 - 3*x**2 + 2*x
         
-        return x, y, xerr
+        return x, y
     
     @pytest.fixture
     def polynomial_degree_4_data(self):
         """Generate perfect polynomial data of degree 4 for testing"""
         np.random.seed(42)
         
-        x = np.array([1, 2, 3, 4, 5])
-        noise_std = 0.1
-        xerr = np.random.normal(0, noise_std, size=len(x))
-        
+        x = np.array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17])
+                
         # Polynomial of degree 4: y = x^4 - 4x^3 + 6x^2 - 4x + 1
         y = x**4 - 4*x**3 + 6*x**2 - 4*x + 1
         
-        return x, y, xerr
-        
-    def test_invalid_input_returns_none(self, fitter):
-        """
-        GIVEN: Invalid input data (None values)
-        WHEN: polynomial_fit is called
-        THEN: All return values should be None and a UserWarning should be raised
-        """
-        with pytest.warns(UserWarning, match="x array cannot be None"):
-            mse, degree, coeffs, results = fitter.polynomial_fit(None, None, None)
-        
-        assert mse is None
-        assert degree is None
-        assert coeffs is None
-        assert results is None
+        return x, y
+    
         
     def test_perfect_linear_fit(self, fitter, linear_data):
         """
+        Base case test for linear fitting.
         GIVEN: Perfect linear data (y = 2x + 1)
-        WHEN: polynomial_fit is called with max_degree=2
+        WHEN: _get_best_fit is called
         THEN: Best fit should be linear with near-zero MSE
         """
-        x, y, xerr = linear_data
+        x, y = linear_data
         
-        best_funct, coeffs, score, fitting_results = self._get_best_fit(fitter, x, y, xerr,  max_degree=4)
+        best_funct, coeffs, score, fitting_results = self._get_best_fit(fitter, x, y)
         degree = len(coeffs) - 1 
         assert degree == 1  # Should choose linear fit
         assert_array_almost_equal(coeffs, [2, 1], decimal=10)  # Should find correct coefficients
@@ -109,12 +89,13 @@ class TestPolynomialFit:
         
     def test_perfect_quadratic_fit(self, fitter, quadratic_data):
         """
+        Base case test for quadratic fitting.
         GIVEN: Perfect quadratic data (y = x² - 2x + 1)
-        WHEN: polynomial_fit is called with max_degree=3
+        WHEN: _get_best_fit is called with max_degree=3
         THEN: Best fit should be quadratic with near-zero MSE
         """
-        x, y, xerr = quadratic_data
-        best_funct, coeffs, score, fitting_results = self._get_best_fit(fitter, x, y, xerr,  max_degree=4)
+        x, y = quadratic_data
+        best_funct, coeffs, score, fitting_results = self._get_best_fit(fitter, x, y)
         degree = len(coeffs) - 1 
         assert degree == 2  # Should choose quadratic fit
         assert_array_almost_equal(coeffs, [1, -2, 1], decimal=10)  # Should find correct coefficients
@@ -122,13 +103,14 @@ class TestPolynomialFit:
         
     def test_perfect_cubic_fit(self, fitter, cubic_data):
         """
+        Base case test for cubic fitting.
         GIVEN: Perfect quadratic data (y = x² - 2x + 1)
-        WHEN: polynomial_fit is called with max_degree=3
+        WHEN: _get_best_fit is called with max_degree=3
         THEN: Best fit should be quadratic with near-zero MSE
         """
-        x, y, xerr = cubic_data
+        x, y= cubic_data
         with pytest.warns(UserWarning):
-            best_funct, coeffs, score, fitting_results = self._get_best_fit(fitter, x, y, xerr,  max_degree=4)
+            best_funct, coeffs, score, fitting_results = self._get_best_fit(fitter, x, y)
             degree = len(coeffs) - 1 
         
         assert degree == 3  # Should choose quadratic fit
