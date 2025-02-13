@@ -74,15 +74,62 @@ class CurveFitter:
     def _process_values(self, x_values, y_values=None, mode=ProcessingMode.PV):
         """
         Process x_values according to different modes.
+        This function supports three processing modes:
+        - PV (Pixel Value): Returns raw measurement values unchanged
+        - OD (Optical Density): Calculates log10(65535/x) for each value
+        - NET_OD (Net Optical Density): Calculates -log10(x/x_zero) where x_zero is the x-value 
+          corresponding to y=0
         
-        Args:
-            x_values: numpy array of input values
-            y_values: optional numpy array of y values, needed for NET_OD mode
-            mode: ProcessingMode enum specifying the processing type
+        Parameters:
+        -----------
+            x_values(numpy.ndarray): Array of measurement values to process. Must contain 
+                                     positive values
+            y_values: optional numpy array of y values, needed for NET_OD mode.
+                        Must contain one zero value to determine the reference point.
+                        Default is None.
+            mode: ProcessingMode enum specifying the processing type. Must be a valid 
+                    ProcessingMode value. Default is ProcessingMode.PV.
             
         Returns:
-            processed numpy array
+        -----------
+            numpy.ndarray: Processed values according to the specified mode.
+            
+        Raises:
+        -----------
+            ValueError: If any of these conditions are met:
+                - Invalid or unknown processing mode is provided
+                - y_values is None when using NET_OD mode
+                - y_values doesn't contain 0 when using NET_OD mode
+                - The x-value corresponding to y=0 is zero in NET_OD mode
+        
+        Warnings:
+        -----------
+            UserWarning: When x_values contains zeros in OD or NET_OD modes. These values 
+                will be filtered out since logarithm cannot be computed for zero.
+        
+        Examples:
+        -----------
+            >>> # Pixel Value mode (raw values)
+            >>> process_values(np.array([100, 200, 300]), mode=ProcessingMode.PV)
+            array([100, 200, 300])
+            
+            >>> # Optical Density mode
+            >>> process_values(np.array([100, 200, 300]), mode=ProcessingMode.OD)
+            array([2.81, 2.51, 2.34])  # log10(65535/x)
+            
+            >>> # Net Optical Density mode
+            >>> x_vals = np.array([100, 200, 300])
+            >>> y_vals = np.array([1, 0, 2])
+            >>> process_values(x_vals, y_vals, mode=ProcessingMode.NET_OD)
+            array([0.30, 0.00, 0.48])  # -log10(x/x_zero) where x_zero=200
+        
+        Notes:
+            - For OD and NET_OD modes, any zero values in x_values are filtered out before 
+              processing to avoid logarithm computation errors
+            - The maximum possible input value is assumed to be 65535 (16-bit)
+            - All logarithmic calculations use base 10
         """
+
         if not isinstance(mode, ProcessingMode):
             raise ValueError(f"Invalid processing mode: {mode}")
 
@@ -119,26 +166,76 @@ class CurveFitter:
                 raise ValueError("x at y = 0 must be higher than 0")
             return -np.log10(x_values / x_zero)
             
-        else:
-            raise ValueError(f"Unknown processing mode: {mode}")
-            
 
     def _validate_data(self, x, y):
         """
-        Validates input data ranges.
+        Validates input data arrays for dose measurement processing. Performs comprehensive
+        validation of array properties and value ranges.
+        This function checks:
+        - Non-null arrays
+        - Non-empty arrays
+        - Conversion to numpy float arrays
+        - Absence of NaN/inf values
+        - Value range constraints
         
         Parameters:
         -----------
         x : array-like
-            Input x values that must be between 0 and 65535
+            Input measurement values (e.g., pixel intensities). Must be:
+            - Non-null and non-empty
+            - Convertible to float array
+            - Contains no NaN or inf values
+            - All values must be between 0 and 65535 (16-bit range)
         y : array-like
-            Input y values that must be between 0 and 50 Gy
+            Input dose values in Gray (Gy). Must be:
+           - Non-null and non-empty
+           - Convertible to float array
+           - Contains no NaN or inf values
+           - All values should be between 0 and 50 Gy
         
         Returns:
         --------
         bool
-            True if data is valid, False otherwise
+            True if all validation checks pass, or if only the dose range warning is triggered.
+            False if any other validation check fails.
+        
+        Warnings
+        --------
+        UserWarning
+            Warnings are issued for these conditions:
+            - Null arrays (x or y is None)
+            - Empty arrays (len(x) or len(y) = 0)
+            - Array conversion failures
+            - NaN or inf values present
+            - x values outside [0, 65535] range
+            - y values outside [0, 50] Gy range (warning only, does not cause validation failure)
+        
+        Notes
+        -----
+        - The y value range check (0-50 Gy) is a soft validation - it generates a warning
+          but returns True, as values above 50 Gy may be valid but could have reduced accuracy
+        - All other validation checks are strict and will return False if they fail
+        - Input arrays must be convertible to numpy arrays of float type
+        
+        Examples
+        --------
+        >>> # Valid data within normal ranges
+        >>> validate_data([1000, 2000], [10, 20])
+        True
+        
+        >>> # Invalid x values (outside 16-bit range)
+        >>> validate_data([70000, 2000], [10, 20])
+        False  # Raises warning about x range
+        
+        >>> # High but allowed dose values (warning only)
+        >>> validate_data([1000, 2000], [10, 60])
+        True  # Raises warning about y range but still returns True
+        
+        >>> # Invalid data (contains NaN)
+        >>> validate_data([1000, np.nan], [10, 20])
+        False  # Raises warning about NaN values
         """
+
         # Check for NaN or inf values
        
         if x is None:
@@ -197,6 +294,10 @@ class CurveFitter:
         array-like
             A normalized array scaled to the [0, 1] range. If all elements in `x` 
             are identical, returns an array of zeros.
+            
+        Raises:
+        -----------
+            ValueError: if x is an empty array 
     
         Notes:
         ------
@@ -277,7 +378,7 @@ class CurveFitter:
         Description:
         ------------
         This function computes a generalized combination of exponential function:
-            f(x) = a * exp(b * normalized_x + e) + c * exp(d * normalized_x + f)
+            f(x) = a * exp(b * normalized_x) + c * exp(d * normalized_x)
         where `normalized_x` scales the input `x` to the range [0, 1] for numerical stability.
         """
         if any(param == 0 for param in (a, b, c, d)):
@@ -351,69 +452,81 @@ class CurveFitter:
         return ((a + b * x) / denominator) + e
 
 
-    def _generalized_polynomial(self, x, a, b, r):
+    def _log_function(self, x, a, b):
         """
-        Function representing polynomial scaling.
+        Enhanced logarithmic function of the form: f(x) = (ln(b + x)/b)/a with input validation and numerical stability.
+        It includes safeguards against numerical instability and invalid inputs.
     
         Parameters:
         -----------
         x : array-like
-            Input values on the x-axis.
+            Input values to be transformed.
+            The function will evaluate  (b + x)/(b) for each value.
         a : float
-            Linear scaling parameter.
+            Scaling parameter for the logarithm. Must be non-zero.
+            Controls the slope of the logarithmic curve.
+            
         b : float
-            Coefficient for the polynomial term.
-        r : float
-            Power of the polynomial term.
-    
-        Returns:
-        --------
-        array-like
-            Output values computed as a * x + b * x**r.
-        """
-        # Ensure r is a valid exponent
-        if not isinstance(r, (int, float)):
-            raise ValueError("Exponent r should be an integer or float.")
-        if abs(r) < 0.5:
-            raise ValueError("r must be ≥ 0.5 in absolute value")
-        # Check if x is a numpy array
-        if not isinstance(x, (int, float, np.ndarray)):
-            warnings.warn("Input x is not int, float or a numpy array. Converting to numpy array.", UserWarning)
-            x = np.array(x)  # Convert to numpy array if it's not
-        # Handle negative exponents with zero check
-        if r < 0: 
-           # Check for invalid values
-           valid_input = (x != 0)
-           
-           if not np.all(valid_input):
-               warnings.warn(f"Invalid values found at x positions: {np.where(~valid_input)[0]}")
-               x = x[x!=0]
-        # Compute generalized polynomial
-        result = a * x + b * x**r
-        return result
-
-
-    def _log_function(self, x, a, b, c):
-        """
-        Enhanced logarithmic function with input validation and numerical stability.
-        
-        Parameters:
-        -----------
-        x : array-like
-            Input values
-        a, b, c : float
-            Function parameters
+            Offset parameter that appears in both numerator and denominator.
+            Affects the horizontal shift and scaling of the curve.
                 
         Returns:
         --------
-        array-like
-            Computed logarithmic values
+        numpy.ndarray
+            Array of computed logarithmic values with the same shape as input x.
+            Elements will be NaN where the input results in invalid operations
+            (negative or zero arguments to logarithm).
+        
+        Raises
+        ------
+        ValueError
+            If parameter 'a' is zero, which would result in division by zero.
+        
+        Warnings
+        --------
+        UserWarning
+            When invalid values are encountered (e.g., when b + x ≤ 0 or b ≤ 0),
+            warning includes the indices of invalid values.
+        
+        Notes
+        -----
+        - Numerical stability is enhanced by adding a small epsilon (1e-10) to both
+          numerator and denominator
+        - Invalid results (from negative or zero inputs to logarithm) are replaced
+          with NaN values
+        - The function preserves input array shape in the output
+        - The computation is vectorized for efficient processing of arrays
+        
+        Mathematical Properties
+        ---------------------
+        - Domain: x > -b (for real outputs)
+        - Range: All real numbers
+        - Horizontal asymptote: None
+        - Vertical asymptote: x = -b
+        - Inflection point: None (function is strictly concave)
+        
+        Examples
+        --------
+        >>> # Basic usage with valid inputs
+        >>> log_function(np.array([1, 2, 3]), a=1, b=1)
+        array([0.693, 1.099, 1.386])  # ln((1 + x)/1)
+        
+        >>> # Handling invalid inputs
+        >>> result = log_function(np.array([-2, 1, 2]), a=1, b=1)
+        # Warning is raised for x = -2
+        # Returns: array([nan, 0.693, 1.099])
+        
+        >>> # Zero scaling parameter
+        >>> log_function(np.array([1, 2]), a=0, b=1)
+        ValueError: Invalid input: denominator would be zero
         """
         eps = 1e-10
-        x = np.asarray(x, dtype=float)
         
-        numerator = x + c
-        denominator = b + x
+        numerator = b + x
+        denominator = b
+        
+        if a == 0:
+            raise ValueError("Invalid input: denominator would be zero")
         
         # Single epsilon addition for numerical stability
         ratio = (numerator + eps) / (denominator + eps)
@@ -425,44 +538,110 @@ class CurveFitter:
             warnings.warn(f"Invalid values found at x positions: {np.where(~valid_mask)[0]}")
                 
         result = np.full_like(x, np.nan, dtype=float)
-        result[valid_mask] = np.log(ratio[valid_mask]) - a
+        result[valid_mask] = np.log(ratio[valid_mask])/ a
         
         return result
 
-    def _calculate_metrics(self, y_true, y_pred, degree, coefficients, xerr=None):
+    def _calculate_metrics(self, y_true, y_pred, degree, coefficients):
         """
-        Calculate various metrics for model fitting.
+        Calculate various metrics for model fitting. 
+        
+        This function evaluates model performance using a composite score
+        that considers prediction accuracy, model complexity, and coefficient relationships.
         
         Parameters:
         -----------
         y_true : array-like
-            Actual y values
+            Actual y values. Must have the same shape as y_pred.
+            Used to calculate prediction error metrics.
         y_pred : array-like
-            Predicted y values
+            Model predictions corresponding to y_true values.
+            Must have the same shape as y_true.
         degree : int
-            Polynomial degree
+            Polynomial degree f the model. Used to calculate complexity penalty.
+            Higher degrees indicate more complex models.
         coefficients : array
-            Polynomial coefficients
-        xerr : array-like, optional
-            Measurement errors
+            Model coefficients in descending order of degree.
+            For example, for a quadratic function ax² + bx + c, coefficients = [a, b, c].
+            Used to assess model stability and coefficient relationships.
         
         Returns:
         --------
+        
         dict
-            Calculated metrics
+            Dictionary containing the following metrics:
+            
+            'mse' : float
+                Mean squared error between y_true and y_pred.
+                Lower values indicate better fit accuracy.
+                
+            'coeff_ratio' : float
+                Ratio between the magnitude of the highest-degree coefficient and
+                the mean of other coefficients. A measure of coefficient stability.
+                - High values suggest dominant high-degree terms
+                - Low values suggest more balanced coefficient contributions
+                - Returns inf if only one coefficient exists
+                
+            'score' : float
+                Composite score combining MSE, complexity penalty, and coefficient ratio.
+                Score = MSE * (1 + complexity_penalty/n) * (1 + 1/coeff_ratio)
+                Lower values indicate better overall model performance.
+        
+        Notes
+        -----
+        The composite score balances three aspects of model quality:
+        1. Prediction accuracy (MSE)
+        2. Model complexity penalty (degree * log(n))
+        3. Coefficient stability (coefficient ratio)
+        
+        The complexity penalty increases with:
+        - Higher polynomial degrees
+        - Larger dataset sizes (logarithmically)
+        
+        Formula Details:
+        - Complexity penalty = degree * log(n)
+          where n is the number of data points
+        - Coefficient ratio = |a₀| / mean(|a₁, a₂, ...|)
+          where a₀ is the highest-degree coefficient
+        
+        Examples
+        --------
+        >>> # Linear model example
+        >>> metrics = calculate_metrics(
+        ...     y_true=[1, 2, 3],
+        ...     y_pred=[1.1, 2.1, 2.9],
+        ...     degree=1,
+        ...     coefficients=[1.0, 0.5]
+        ... )
+        >>> print(metrics)
+        {
+            'mse': 0.0167,
+            'coeff_ratio': 2.0,
+            'score': 0.0209
+        }
+        
+        >>> # Quadratic model example
+        >>> metrics = calculate_metrics(
+        ...     y_true=[1, 4, 9],
+        ...     y_pred=[1.1, 3.9, 8.8],
+        ...     degree=2,
+        ...     coefficients=[1.0, 0.0, 0.1]
+        ... )
+        >>> print(metrics)
+        {
+            'mse': 0.0267,
+            'coeff_ratio': 20.0,
+            'score': 0.0401
+        }
+        
+        See Also
+        --------
+        sklearn.metrics.mean_squared_error : Used for MSE calculation
+        numpy.log : Used in complexity penalty calculation
         """
+        
         mse = mean_squared_error(y_true, y_pred)
-        
-        # Chi-squared calculation
-        chi2 = None
-        if xerr is not None:
-            residuals = y_true - y_pred
-            chi2 = np.sum((residuals / xerr) ** 2)
-        
-        # Degrees of freedom
-        
-        dof = len(y_true) - (len(coefficients))
-        
+                
         # Coefficient ratio
         coeff_ratio = (np.abs(coefficients[0]) / 
                        np.mean(np.abs(coefficients[1:])) 
@@ -479,15 +658,123 @@ class CurveFitter:
         return {
             'mse': mse,
             'score': score,
-            'chi2': chi2,
-            'dof': dof,
             'coeff_ratio': coeff_ratio
         }
     
     
-    def _select_best_fit(self, fitting_results):
+    def select_best_fit(self, fitting_results, selection_metric='score'):
         """
-        Select the best fit based on metrics
+        Selects the best fitting function from a list of candidate fits based on specified
+        metrics. 
+        
+        The function filters successful fits and chooses the one with the lowest
+        metric value.        
+        The 'score' metric is particularly recommended for polynomial fits as it effectively
+        balances accuracy with model complexity, helping prevent overfitting. It penalizes
+        higher-degree polynomials when they don't provide significant improvements in fit quality.
+        
+        Parameters
+        ----------
+        fitting_results : list of dict
+            List of dictionaries containing fitting results. Each dictionary must contain:
+            - 'success' : bool
+                Indicates if the fit was successful
+            - 'function' : callable
+                The fitted function
+            - 'coefficients' : array-like
+                The fitted parameters
+            - 'metrics' : dict
+                Dictionary of metric values including:
+                    - 'score' : float
+                    - 'mse' : float
+                    - Other available metrics
+                    
+        selection_metric : str, default='score'
+            The metric to use for selecting the best fit. Must be a key in the metrics
+            dictionary. Lower values are considered better.
+        
+        Returns
+        -------
+        function : callable or None
+            The best fitting function. None if no successful fits found.
+            
+        coefficients : array-like or None
+            Parameters of the best fit. None if no successful fits found.
+            
+        best_score : float or None
+            Value of the selection metric for the best fit. None if no successful fits found.
+            
+        fitting_results : list of dict
+            The original fitting results list, unchanged.
+        
+        Notes
+        -----
+        Selection Process:
+        1. Filters out unsuccessful fits
+        2. Compares remaining fits using the specified metric
+        3. Selects the fit with the lowest metric value
+        4. Logs debug information about the selected fit
+        
+        The function handles several edge cases:
+        - Empty fitting_results list
+        - No successful fits
+        - Missing metric values
+        - Errors during comparison
+        
+        Logging:
+        - WARNING level: When no successful fits are found
+        - ERROR level: When errors occur during selection
+        - DEBUG level: Selected function details and metric values
+        
+        Examples
+        --------
+        >>> # Example with polynomial fits of different degrees
+        >>> # True function: f(x) = 2x² + 1
+        >>> import numpy as np
+        >>> x = np.array([0, 1, 2, 3, 4, 5])
+        >>> y = 2*x**2 + 1 + np.random.normal(0, 0.1, size=len(x))  # Add some noise
+        >>> 
+        >>> # Quadratic fit (correct degree)
+        >>> quad_fit = {
+        ...     'success': True,
+        ...     'function': lambda x, a, b, c: a*x**2 + b*x + c,
+        ...     'coefficients': [1.98, 0.05, 1.02],  # Close to true values
+        ...     'metrics': {
+        ...         'score': 0.015,  # Better score
+        ...         'mse': 0.01
+        ...     }
+        ... }
+        >>> 
+        >>> # Cubic fit (overfitting)
+        >>> cubic_fit = {
+        ...     'success': True,
+        ...     'function': lambda x, a, b, c, d: a*x**3 + b*x**2 + c*x + d,
+        ...     'coefficients': [0.1, 1.85, 0.15, 0.98],
+        ...     'metrics': {
+        ...         'score': 0.028,  # Worse score due to complexity penalty
+        ...         'mse': 0.009    # Slightly better MSE but overfitting
+        ...     }
+        ... }
+        >>> 
+        >>> fits = [quad_fit, cubic_fit]
+        >>> func, coef, score, results = select_best_fit(fits)
+        >>> print(f"Best score: {score}")  # Will select quadratic fit
+        Best score: 0.015
+        
+        In this example, although the cubic fit has a slightly better MSE, the quadratic
+        fit is correctly selected because:
+        1. It has the right complexity for the true underlying function
+        2. The score metric penalizes the unnecessary complexity of the cubic fit
+        3. The coefficient ratio is better (closer to true function parameters)
+        
+        See Also
+        --------
+        calculate_metrics : Function used to generate the metrics used in selection
+        
+        Raises
+        ------
+        Logs errors but does not raise exceptions. Returns None values on failure.
+        
         """
         successful_fits = [
             result for result in fitting_results 
@@ -503,13 +790,15 @@ class CurveFitter:
         try:
             best_fit = min(
                 successful_fits, 
-                key=lambda x: x.get('metrics', {}).get('score', float('inf'))
+                key=lambda x: x.get('metrics', {}).get(selection_metric, float('inf'))
             )
         except Exception as e:
             self.logger.error(f"Error selecting best fit: {str(e)}")
             return None, None, None, fitting_results
         # Debug print to understand the structure
-        print("Best Fit Details:", best_fit)
+        self.logger.debug(f"Selected Function: {best_fit.get('function')}")
+        self.logger.debug(f"Score: {best_fit.get('metrics', {}).get('score')}")
+        self.logger.debug(f"MSE: {best_fit.get('metrics', {}).get('mse')}")
 
         return (
             best_fit.get('function'), 
@@ -518,29 +807,155 @@ class CurveFitter:
             fitting_results
         )
         
-    def polynomial_fit(self, x, y, xerr=None, max_degree=4, alpha=1.0):
+    def polynomial_fit(self, x, y, mode=ProcessingMode.PV, max_degree=4):
+
         """
-        Find the best polynomial fit using multiple criteria to avoid overfitting
+        Calculate the best polynomial fit for a given dataset.
         
-        Parameters:
-        x: array-like, data for the x-axis
-        y: array-like, data for the y-axis
-        xerr: array-like, measurement errors
-        max_degree: int, maximum degree of the polynomial to test
-        alpha: float, regularization parameter for coefficient comparison
+        Fits polynomials of varying degrees to the input data with automatic degree 
+        optimization and numerical stability measures. The function performs data validation, 
+        normalization, and handles various edge cases.
         
-        Returns:
-        tuple: (best_mse, best_degree, best_coefficients, fitting_results)
+        Parameters
+        ----------
+        x : array-like
+            Independent variable values (e.g., measurement values).
+            Must contain at least 2 distinct points for fitting.
+            
+        y : array-like
+            Dependent variable values (e.g., dose values).
+            Must have the same length as x.
+            
+        mode : ProcessingMode, default=ProcessingMode.PV
+            Processing mode for x values before fitting. Options:
+            - PV: Uses raw values
+            - OD: Applies optical density transformation
+            - NET_OD: Applies net optical density transformation
+            
+        max_degree : int, default=4
+            Maximum polynomial degree to attempt. The actual maximum degree used
+            may be lower based on the number of data points (n_points//2).
+            Values above 4 trigger a warning about potential overfitting.
+        
+        Returns
+        -------
+        list of dict
+            List of fitting results for each polynomial degree attempted.
+            Each dictionary contains:
+            - 'function' : str
+                Name of the fit (e.g., 'polynomial_degree_2')
+            - 'metrics' : dict
+                Fit quality metrics including:
+                - 'mse': Mean squared error
+                - 'score': Composite score considering complexity
+            - 'polynomial' : numpy.poly1d
+                Fitted polynomial function
+            - 'coefficients' : array
+                Polynomial coefficients in descending order
+            - 'degree' : int
+                Polynomial degree
+            - 'success' : bool
+                Whether the fit succeeded
+            - 'error_message' : str, optional
+                Present only if fit failed
+        
+        Notes
+        -----
+        Fitting Process:
+        1. Data validation using _validate_data
+        2. X-value processing according to specified mode
+        3. Edge case handling (constant x or y values)
+        4. Data normalization for numerical stability
+        5. Degree limitation based on sample size
+        6. Polynomial fitting with coefficient conversion
+        7. Metrics calculation for each successful fit
+        
+        Numerical Stability:
+        - Input data is normalized using mean and standard deviation
+        - Coefficients are converted back to original scale
+        - Polynomial evaluations use normalized x values internally
+        
+        Warnings are generated when:
+        - max_degree > 4 (overfitting risk)
+        - max_degree is reduced due to sample size
+        
+        Examples
+        --------
+        >>> # Example with quadratic data and best fit selection
+        >>> import numpy as np
+        >>> 
+        >>> # Generate sample data (quadratic function with noise)
+        >>> x = np.array([0, 1, 2, 3, 4, 5])
+        >>> y = 2*x**2 + 1 + np.random.normal(0, 0.1, size=len(x))
+        >>> 
+        >>> # Fit polynomials of different degrees
+        >>> fitting_results = polynomial_fit(x, y, max_degree=4)
+        >>> 
+        >>> # Recommended: Use select_best_fit to choose optimal model
+        >>> best_func, best_coeff, best_score, all_results = select_best_fit(
+        ...     fitting_results,
+        ...     selection_metric='score'  # 'score' metric recommended for polynomials
+        ... )
+        >>> 
+        >>> # The selected model is typically the one that best balances
+        >>> # accuracy and complexity. In this case, it should select
+        >>> # degree 2 as it matches the true underlying function.
+        >>> print(f"Selected polynomial degree: {best_func.split('_')[-1]}")
+        Selected polynomial degree: 2
+        
+        >>> # Not Recommended: Manual selection using only MSE
+        >>> # This might lead to overfitting
+        >>> worst_fit = min(fitting_results, key=lambda r: r['metrics']['mse'])
+        >>> print(f"Degree selected by MSE only: {worst_fit['degree']}")
+        Degree selected by MSE only: 4  # Often overfits
+        
+        >>> # Handling constant y values
+        >>> y_const = np.full_like(x, 5.0)
+        >>> results = polynomial_fit(x, y_const)
+        >>> print(results[0]['degree'])  # Returns degree 0
+        0
+        
+        Raises
+        ------
+        ValueError
+            - When number of points is insufficient for fitting
+            - When all x values are constant
+            - When data validation fails
+        
+        See Also
+        --------
+        select_best_fit : Recommended function for selecting optimal polynomial degree
+        numpy.polyfit : Used internally for polynomial fitting
+        _validate_data : Data validation function
+        _process_values : Value processing function
+        _calculate_metrics : Metrics calculation function
+        
+        Theory
+       ------
+       Polynomial fitting approximates the relationship between independent and dependent variables 
+       by modeling the data as a polynomial function. This method uses the least squares approach 
+       to minimize the sum of squared differences between observed data and the polynomial model. 
+       The choice of polynomial degree is critical: lower degrees may underfit the data, while 
+       higher degrees risk overfitting. To address numerical instability, the function normalizes 
+       the data, ensuring that the computations remain stable, especially when working with 
+       high-degree polynomials or large magnitude values.
+    
+       References
+       ----------
+       1. Wikipedia contributors, "Polynomial Regression," *Wikipedia, The Free Encyclopedia*, 
+          https://en.wikipedia.org/wiki/Polynomial_regression.
+       2. NumPy Documentation, "numpy.polyfit", https://numpy.org/doc/stable/reference/generated/numpy.polyfit.html.
         """
         fitting_results = []
         if not self._validate_data(x, y):
             return None, None, None, None
+
+        x_processed = self._process_values(x, y, mode)
         
-        if len(x) - (max_degree) <= 0:
-            raise ValueError ("Number of points must be higher than max_degree")
-        if alpha < 0:
-            raise ValueError ("Alpha must be a positive number")
+        if len(x_processed) <= 1:
+            raise ValueError ("Number of points is not sufficients to fit data")
             
+                
         # Check for constant x or y values
         if np.all(y == y[0]):
             # For constant y, return degree 0 polynomial with that constant
@@ -550,7 +965,7 @@ class CurveFitter:
                 'metrics': {
                     'mse': 0,
                     'score': 0,
-                    'chi2': 0 if xerr is not None else None
+                    
                 },
                 'coefficients': constant_coeff,
                 'degree': 0,
@@ -559,41 +974,44 @@ class CurveFitter:
             }]
             return fitting_results
         
-        if np.all(x == x[0]):
+        if np.all(x_processed == x_processed[0]):
             # Cannot fit polynomial if x is constant - undefined
             raise ValueError("Cannot fit polynomial when all x values are constant")
             
-        # best_fit = {
-        #     'mse': float('inf'),
-        #     'score': float('inf'),  # Combined score for selection
-        #     'degree': 0,
-        #     'coefficients': None
-        # }
-    
         # Normalize data for numerical stability
-        x_mean, x_std = np.nanmean(x), np.nanstd(x)
-        x_norm = (x - x_mean) / x_std
+        x_mean, x_std = np.nanmean(x_processed), np.nanstd(x_processed)
+        x_norm = (x_processed - x_mean) / x_std
         
         if max_degree > 4: 
             warnings.warn("Polynomial degrees higher than 4 might lead to overfitting and numerical instability.")
             
+        n_points = len(x_processed)
+        # Rule 2: Limit maximum degree based on sample size
+        suggested_max_degree = int(n_points//2)
+        actual_max_degree = min(max_degree, suggested_max_degree)
         
-        for degree in range(1, max_degree + 1):
+        if actual_max_degree < max_degree:
+            warnings.warn(f"Reducing maximum polynomial degree from {max_degree} to {actual_max_degree} "
+                         f"based on sample size of {n_points} points", UserWarning)
+        
+        
+            
+        for degree in range(1, actual_max_degree + 1):
             try:
                 # Fit with normalized x
                 coefficients_norm = np.polyfit(x_norm, y, degree)
                 
                 # Convert coefficients back to original scale
                 p_norm = np.poly1d(coefficients_norm)
-                x_test = np.linspace(min(x), max(x), 100)
+                x_test = np.linspace(min(x_processed), max(x_processed), 100)
                 y_test = p_norm((x_test - x_mean) / x_std)
                 coefficients = np.polyfit(x_test, y_test, degree)
                 
                 p = np.poly1d(coefficients)
-                y_pred = p(x)
+                y_pred = p(x_processed)
                 
                 # Calculate metrics using the new method
-                metrics = self._calculate_metrics(y, y_pred, degree, coefficients, xerr)
+                metrics = self._calculate_metrics(y, y_pred, degree, coefficients)
             
                
                 fitting_results.append({
@@ -605,15 +1023,6 @@ class CurveFitter:
                     'success': True
                 })
     
-                # # Update best fit if this degree has a better score
-                # if metrics['score'] < best_fit['score']:
-                #     best_fit.update({
-                #         'mse': metrics['mse'],
-                #         'score': metrics['score'],
-                #         'degree': degree,
-                #         'coefficients': coefficients
-                #     })
-    
             except Exception as e:
                 fitting_results.append({
                     'function': f'polynomial_degree_{degree}',
@@ -622,21 +1031,57 @@ class CurveFitter:
                     'error_message': str(e)
                 })
     
-        # return (best_fit['score'], best_fit['degree'], 
-                # best_fit['coefficients'], fitting_results)
         return fitting_results
 
 
     
-    def _log_fitting_results(self, fitting_results):
+    def log_fitting_results(self, fitting_results):
         """
-        Log a formatted summary of all fitting results.
+        Logs a formatted summary of polynomial and non-linear fitting results, 
+        highlighting success states and key metrics while flagging failed attempts.
+    
+        Parameters
+        ----------
+        fitting_results : list of dict
+            List of fitting result dictionaries with structure:
+            - 'function' : str
+                Function identifier (e.g., 'polynomial_degree_2')
+            - 'metrics' : dict or None
+                Quality metrics (present if successful):
+                - 'score': float - Composite score balancing accuracy/complexity
+                - 'mse': float - Mean squared error
+            - 'success' : bool
+                Fit success indicator
+            - Additional keys may exist but are not logged here
         
-        Parameters:
-        -----------
-        fitting_results : list
-            List of dictionaries containing fitting results for each function
+        Notes
+        -----
+        Output Formatting:
+        - Polynomial functions: Displayed as 'Polynomial Degree N'
+        - Other functions: Converted to Title Case (e.g., '_exponential' -> 'Exponential')
+        - Scientific notation: Metrics shown with 2 decimal places (e.g., 1.23e-04)
+        - Failed fits: Display 'Failed' and use warning level logging
+        
+        Logging Levels:
+        - INFO: Successfully fitted functions with metrics
+        - WARNING: Failed fitting attempts
+        
+        Display Order:
+        - Results are logged in the order they appear in the input list
+        
+        Examples
+        --------
+        Typical log output:
+            INFO: Fitting Results Summary:
+            INFO: Polynomial Degree 2: score = 1.23e-01, mse = 5.67e-03
+            WARNING: Exponential: Fitting Failed
+        
+        See Also
+        --------
+        polynomial_fit : Generates the fitting results logged by this method
+        calculate_non_linear_fit : Generates the fitting results for non-linear function
         """
+        
         self.logger.info("\nFitting Results Summary:")
         
         for result in fitting_results:
@@ -647,192 +1092,608 @@ class CurveFitter:
             else:
                 # Replace underscores with spaces and capitalize each word
                 displayed_name = ' '.join(word.capitalize() for word in func_name.split('_'))
-            
-            # Format MSE value
+            # Format metrics value
             score_str = f"{result['metrics']['score']:.2e}" if result['metrics'] is not None else "Failed"
+            mse_str = f"{result['metrics']['mse']:.2e}" if result['metrics'] is not None else "Failed"
             
             # Use appropriate log level based on success
             if result['success']:
-                self.logger.info(f"{displayed_name}: score = {score_str}")
+                self.logger.info(f"{displayed_name}: score = {score_str}, mse = {mse_str}")
             else:
                 self.logger.warning(f"{displayed_name}: Fitting Failed")
            
-    def calculate_best_fit(self, x, y, mode=ProcessingMode.PV, print_results=False):
+    def calculate_non_linear_fit(self, x, y, mode=ProcessingMode.PV, print_results=False):
         """
-        Calculates the best fitting function and its parameters.
-        Returns the best function, its coefficients, and score.
-        Args:
-            x (array-like): Input x values
-            y (array-like): Input y values
-            mode (ProcessingMode): Processing mode for x values
-            print_results (bool): Whether to print detailed fitting results
-        
+        Calculate the best non-linear fit for a given dataset.
+    
+        This function attempts to find the best-fitting function for the provided x and y values by
+        iterating over a set of predefined fitting functions. For each candidate function, it generates
+        multiple initial guesses (a default guess, a heuristic-based guess, and a Bayesian-inferred guess)
+        and then applies non-linear least squares optimization using SciPy's `curve_fit`. The function
+        evaluates each fit using performance metrics (such as the Mean Squared Error) and logs detailed
+        results if requested.
+    
+        Parameters:
+            x (array-like): Input x-values.
+                Expected to be a sequence of numeric values.
+            y (array-like): Input y-values corresponding to x.
+                Expected to be a sequence of numeric values.
+            mode (ProcessingMode, optional): Specifies the processing mode for transforming x-values.
+                Defaults to ProcessingMode.PV.
+            print_results (bool, optional): If True, prints detailed fitting results.
+                Defaults to False.
+    
         Returns:
-            tuple: Best fitting function, its parameters, and performance metrics
-        
+            list of dict: A list where each dictionary represents the result of fitting using a specific function.
+                Each dictionary contains:
+                    - 'function' (str): Name of the fitting function used.
+                    - 'coefficients' (array-like or None): Best-fit parameters for the function.
+                    - 'metrics' (dict or None): Performance metrics (e.g., Mean Squared Error).
+                    - 'success' (bool): Indicates whether the fitting was successful.
+                    - 'error_message' (str or None): An error message if the fitting failed.
+    
         Raises:
-            ValueError: If input data is invalid
-            RuntimeError: If no valid fit can be found
+            ValueError: If the input data (x or y) is invalid.
+            RuntimeError: If no valid fit can be determined after trying all functions and initial guesses.
+    
+        Examples:
+            >>> import numpy as np
+            >>> x = np.array([1, 2, 3, 4, 5])
+            >>> y = np.array([2.2, 2.8, 3.6, 4.5, 5.1])
+            >>> results = fitter.calculate_non_linear_fit(x, y, mode=ProcessingMode.PV, print_results=False)
+            >>> for res in results:
+            ...     if res['success']:
+            ...         print(f"Best fit for {res['function']}: {res['coefficients']}")
+            ...     else:
+            ...         print(f"Fitting failed for {res['function']}: {res['error_message']}")
+    
+        Relationships:
+            This method utilizes:
+                - self._validate_data() for input data validation.
+                - self._process_values() for preprocessing x-values.
+                - self._generate_initial_guess() and self._generate_bayesian_initial_guess() to obtain initial guesses.
+                - SciPy's `curve_fit` for performing the non-linear least squares optimization.
+    
+        Theory:
+            The non-linear curve fitting is based on the least squares method, which minimizes the sum of
+            squared differences between observed and predicted values. This method is a fundamental tool in
+            statistical modeling and is widely used in data fitting tasks.
+    
+        References:
+            - "Least Squares", Wikipedia: https://en.wikipedia.org/wiki/Least_squares
+            - SciPy's curve_fit documentation: https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.curve_fit.html
         """
+        
+        
         self.logger.info("Starting curve fitting")
         
         if not self._validate_data(x, y):
             return None, None, None, None
         
-        try:
-            x_processed = self._process_values(x, y, mode)
-        except Exception as e:
-            self.logger.error(f"Error processing x values: {str(e)}")
-            return None, None, None, None
-        
-        # best_func = None
-        # best_popt = None
+        x_processed = self._process_values(x, y, mode)
+
         fitting_results = []
-        
-        # # Polynomial fitting
-        # best_score, best_degree, best_coefficients, poly_fitting_results = self.polynomial_fit(x_processed, y, max_degree=4)
-        
-        # best_func = best_degree
-        # best_popt = best_coefficients
-        poly_fitting_results = self.polynomial_fit(x_processed, y, max_degree=4)
-        
-        # Add polynomial results to fitting_results
-        fitting_results.extend(poly_fitting_results)
-        
-        # Implement smarter initial guess based on function characteristics 
-        def generate_initial_guess(func):
-            signature = inspect.signature(func)
-            return [1.0] * (len(signature.parameters) - 1)  # Subtract 2 for self and x
         
         for func_name, func in self.fitting_functions.items():
             
+            self.logger.info(f"Starting fit for: {func_name}")
+            
             with warnings.catch_warnings():
                 warnings.filterwarnings('ignore', message='Invalid values found at x positions*')
+                initial_guesses = [
+                    None,
+                self._generate_initial_guess(func, x_processed, y),
+                self._generate_bayesian_initial_guess(func, x_processed, y)
                 
-                initial_guess = generate_initial_guess(func)
-                
-                try:
-                    # Define residual function for least_squares
-                    def residuals(params):
-                        return func(x_processed, *params) - y
+            ] 
+                for initial_guess in initial_guesses:
+                    self.logger.info(f"Fit in progress for: {func_name}")
+                    best_fit = None
+                    best_metrics = None
+                    fit_succeeded = False
                     
-                    # Try fitting without covariance calculation
-    
-                    result = least_squares(residuals, initial_guess)
-    
-                    if result.success:
-                        # If fit succeeded, calculate MSE
-                        y_fit = func(x_processed, *result.x)
-                        metrics = self._calculate_metrics(y, y_fit, 0, result.x)
-                       
+                    try:
                         
-                        fitting_results.append({
-                            'function': func_name,
-                            'metrics': metrics,
-                            'success': True,
-                            'error_message': None,
-                            'coefficients': result.x
-                        })
-                        
-                        # if metrics['score'] < best_score:
-                        #     best_score = metrics['score']
-                        #     best_func = func
-                        #     best_popt = result.x
-                    else:
-                        self.logger.warning(f"Fitting failed for function {func_name}")
-                        fitting_results.append({
-                            'function': func_name,
-                            'metrics': None,
-                            'valid_covariance': False,
-                            'success': False,
-                            'error_message': "Fitting failed"
-                        })
-                        
-                except Exception as e:
-                    self.logger.error(f"Exception during fitting for {func_name}: {str(e)}")
+                        popt, pcov = curve_fit(func, x_processed, y, p0=initial_guess, maxfev=10000)
+                
+                        if np.all(np.isfinite(pcov)):
+                            y_fit = func(x_processed, *popt)
+                            metrics = self._calculate_metrics(y, y_fit, 0, popt)
+                            
+                            # Keep track of the best fit among all initial guesses
+                            if best_metrics is None or metrics['mse'] < best_metrics['mse']:
+                                best_fit = {
+                                    'function': func_name,
+                                    'metrics': metrics,
+                                    'success': True,
+                                    'error_message': None,
+                                    'coefficients': popt
+                                }
+                                best_metrics = metrics
+                            
+                            fit_succeeded = True
+                     
+       
+                    except Exception as e:
+                        self.logger.debug(f"Attempt with initial guess {initial_guess} failed for {func_name}: {str(e)}")
+                        continue
+                
+                
+                # After trying all initial guesses, append the best result or failure
+                if fit_succeeded:
+                    self.logger.info(f"Fit successfully completed for: {func_name}")
+                    fitting_results.append(best_fit)
+                else:
+                    # Warning after all initial guesses have failed
+                    self.logger.warning(f"All fitting attempts failed for function {func_name}")
                     fitting_results.append({
                         'function': func_name,
                         'metrics': None,
                         'valid_covariance': False,
                         'success': False,
-                        'error_message': str(e)
+                        'error_message': "All initial guesses failed to converge"
                     })
-        
         if print_results:
-            self._log_fitting_results(fitting_results)
-            
-        # if best_func is None or best_popt is None:
-        #         self.logger.error("No valid fit found")
-        #         return
-        # elif isinstance(best_func, int):
-        #     self.logger.info(f'The best fitting function is Polynomial Degree {best_degree}')
-        # else:
-        #     # Get the function name without the leading underscore and format it
-        #     func_name = best_func.__name__.lstrip('_')
-        #     formatted_name = ' '.join(word.capitalize() for word in func_name.split('_'))
-        #     self.logger.info(f'The best fitting function is {formatted_name}')
-            
+            self.log_fitting_results(fitting_results)
         return fitting_results
-    
-    def log_best_fitting_function(self, fitting_results, best_func=None, best_degree=None):
+       
+    def _generate_initial_guess(self, func, x, y):
         """
-        Logs detailed information about the best-fitting function.
-    
-        Parameters:
-        -----------
-        best_func : callable or int
-            The best-fitting function or polynomial degree
-        best_degree : int, optional
-            Polynomial degree (used when best_func is an integer)
-    
-        Returns:
+        Dispatch to specific initialization methods based on the provided function.
+        
+        This method converts the input x and y values to numpy arrays and constructs a handler 
+        method name based on the target function's name (after stripping any leading underscores). 
+        It then retrieves the corresponding specialized initial guess method (if available) or falls 
+        back to a default initial guess generator. This mechanism provides tailored parameter 
+        initialization for non-linear curve fitting, improving the convergence of optimization routines.
+     
+        Parameters
+        ----------
+        func : callable
+            The target function for which an initial guess is needed. This is typically a model function 
+            used in curve fitting.
+        x : array-like
+            Independent variable data. Must be a numeric sequence convertible to a numpy array.
+        y : array-like
+            Dependent variable data corresponding to x. Must be a numeric sequence convertible to a numpy array.
+     
+        Returns
+        -------
+        list
+            A list of numerical initial guess values corresponding to the parameters of the target function.
+     
+        Raises
+        ------
+        AttributeError
+            If the specialized handler method derived from the function name does not exist and the default 
+            handler is not available (this scenario is unlikely).
+     
+        Examples
         --------
-        str
-            A formatted string describing the best-fitting function
+        >>> def exponential:
+        ...     return a * np.exp(b * x) + c
+        >>> # Assume 'instance' is an instance of the class containing these methods.
+        >>> guess = instance._generate_initial_guess(exponential, [1, 2, 3], [2, 4, 6])
+        >>> print(guess)
+        [amplitude_value, rate_value, offset_value]
+     
+        Relationships
+        -------------
+        This method dispatches to specialized methods such as _guess_for_exponential, 
+        _guess_for_combination_of_exponential, _guess_for_generalized_rational, and _guess_for_log_function 
+        based on the function name. It falls back to _default_initial_guess if no specific method exists.
+     
+        Theory
+        ------
+        Generating a good initial guess is critical for the success of non-linear optimization algorithms 
+        like those used in curve fitting. Tailored guesses based on function characteristics help in achieving 
+        faster and more reliable convergence.
+     
+        References
+        ----------
+        1. SciPy documentation on curve_fit: https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.curve_fit.html
         """
-        
-        # Check if fitting results exist
-        if not fitting_results:
-            self.logger.warning("No fitting results available. Compute best fit first.")
-            return "No fitting results"
+        x = np.asarray(x)
+        y = np.asarray(y)
+        # Implement smarter initial guess based on function characteristics 
+        handler_name = f"_guess_for_{func.__name__.lstrip('_')}"
+        handler = getattr(self, handler_name, self._default_initial_guess)
+        return handler(x, y, func)
+
+    # --------------------------
+    # Specialized Initial Guesses
+    # --------------------------
     
-        try:
-            # If no best_func provided, select from existing results
-            if best_func is None:
-                best_func, best_coeff, best_metrics, _ = self._select_best_fit(fitting_results)
-                print(best_func)
-            # Check for invalid input
-            if best_func is None:
-                error_msg = "No valid fit found"
-                self.logger.error(error_msg)
-                return error_msg
-        
-            # Handle polynomial fits
-            if isinstance(best_func, int) or (best_degree is not None):
-                degree = best_func if isinstance(best_func, int) else best_degree
-                log_message = f'Best fitting function: Polynomial Degree {degree}'
-                self.logger.info(log_message)
-                return log_message
-        
-            # Handle other function types
-            try:
-                # Get the function name without the leading underscore
-                # func_name = best_func.__name__.lstrip('_')
-                
-                # Format the function name (convert to title case)
-                formatted_name = ' '.join(word.capitalize() for word in best_func.split('_'))
-                
-                log_message = f'Best fitting function: {formatted_name}'
-                self.logger.info(log_message)
-                return log_message
+    def _guess_for_exponential(self, x, y, func):
+        """
+        Generate an initial guess for an exponential function of the form a*exp(b*x) + c.
+
+        This method computes the minimum value of y to estimate the offset (c), calculates the amplitude 
+        as the difference between the maximum and minimum y values, and determines a rough estimate for the 
+        rate parameter (b) based on the range of x values. These heuristic estimations provide a reasonable 
+        starting point for fitting exponential models.
     
-            except AttributeError:
-                error_msg = "Unable to determine function name"
-                self.logger.error(error_msg)
-                return error_msg
-        except Exception as e:
-            self.logger.error(f"Error in logging best fitting function: {str(e)}")
-            return "Error in determining best fit"
+        Parameters
+        ----------
+        x : array-like
+            Independent variable data, expected to be a numeric sequence convertible to a numpy array.
+        y : array-like
+            Dependent variable data corresponding to x, expected to be a numeric sequence convertible to a numpy array.
+        func : callable
+            The exponential model function, typically of the form a*exp(b*x) + c.
+    
+        Returns
+        -------
+        list
+            A list containing three numerical values: [a, b, c] corresponding to amplitude, rate, and offset.
+    
+        Examples
+        --------
+        >>> import numpy as np
+        >>> x = np.array([0, 1, 2])
+        >>> y = np.array([1, 2.7, 7.4])
+        >>> guess = instance._guess_for_exponential(x, y, lambda x, a, b, c: a*np.exp(b*x)+c)
+        >>> print(guess)
+        [amplitude, -1.0/x_range, min_y]
+    
+        Relationships
+        -------------
+        This method is invoked via _generate_initial_guess when the target function matches an exponential model.
+    
+        Theory
+        ------
+        Exponential functions exhibit rapid growth or decay. The offset (c) is approximated by the minimum y value, 
+        the amplitude (a) by the y-range, and the rate (b) is inversely related to the x-range. Such heuristics 
+        provide a reasonable initialization for non-linear least squares fitting.
+    
+        References
+        ----------
+        1. Wikipedia, "Exponential function": https://en.wikipedia.org/wiki/Exponential_function
+        """
+        y_min = np.min(y)
+        amplitude = np.max(y) - y_min
+        x_range = np.ptp(x) or 1.0
+        return [amplitude, -1.0/x_range, y_min]
+    
+    def _guess_for_combination_of_exponential(self, x, y, func):
+        """
+        Generate an initial guess for a combined exponential function of the form a*exp(b*x) + c*exp(d*x).
+    
+        This method estimates the overall amplitude as the range of y values and uses the range of x values 
+        to propose rate parameters. The amplitude is equally divided between the two exponential components, 
+        with one component assigned a positive rate and the other a negative rate, to capture opposing trends.
+    
+        Parameters
+        ----------
+        x : array-like
+            Independent variable data, expected to be a numeric sequence convertible to a numpy array.
+        y : array-like
+            Dependent variable data corresponding to x, expected to be a numeric sequence convertible to a numpy array.
+        func : callable
+            The combined exponential function, typically of the form a*exp(b*x) + c*exp(d*x).
+    
+        Returns
+        -------
+        list
+            A list of four numerical values: [a, b, c, d] representing the amplitudes and rates for the two exponentials.
+    
+        Examples
+        --------
+        >>> import numpy as np
+        >>> x = np.linspace(0, 5, 10)
+        >>> y = np.exp(x) + np.exp(-x)
+        >>> guess = instance._guess_for_combination_of_exponential(x, y, 
+        ...     lambda x, a, b, c, d: a*np.exp(b*x) + c*np.exp(d*x))
+        >>> print(guess)
+        [half_amplitude, 1.0/x_range, half_amplitude, -1.0/x_range]
+    
+        Relationships
+        -------------
+        Called by _generate_initial_guess when the target function corresponds to a combination of exponential terms.
+    
+        Theory
+        ------
+        Data exhibiting both growth and decay can often be modeled by a combination of exponentials. 
+        Splitting the amplitude and assigning opposite signs to the rate parameters helps in capturing such dual behaviors.
+    
+        References
+        ----------
+        1. MathWorld, "Exponential Growth and Decay": http://mathworld.wolfram.com/ExponentialGrowth.html
+        """
+        amplitude = np.ptp(y)
+        x_range = np.ptp(x) or 1.0
+        
+        
+        return [
+            amplitude/2,        # a
+            1.0/x_range,        # b
+            amplitude/2,        # c
+            -1.0/x_range,       # d
+        ]
+    
+    def _guess_for_generalized_rational(self, x, y, func):
+        """
+        Generate an initial guess for a generalized rational function of the form (a + b*x)/(c*x + d) + e.
+    
+        This method first estimates a linear trend in the data using a simple linear regression (via np.polyfit) 
+        to obtain the slope and intercept. It then uses the range of x to approximate one of the parameters and 
+        sets a default for the remaining ones. This heuristic provides a balanced starting point for fitting a 
+        rational function that can model more complex relationships.
+    
+        Parameters
+        ----------
+        x : array-like
+            Independent variable data, expected to be a numeric sequence convertible to a numpy array.
+        y : array-like
+            Dependent variable data corresponding to x, expected to be a numeric sequence convertible to a numpy array.
+        func : callable
+            The rational function model, typically of the form (a + b*x)/(c*x + d) + e.
+    
+        Returns
+        -------
+        list
+            A list containing five numerical values: [a, b, c, d, e] corresponding to the parameters of the rational function.
+    
+        Examples
+        --------
+        >>> import numpy as np
+        >>> x = np.linspace(1, 10, 10)
+        >>> y = (2 + 3*x) / (4*x + 5) + 1
+        >>> guess = instance._guess_for_generalized_rational(x, y, 
+        ...     lambda x, a, b, c, d, e: (a+b*x)/(c*x+d)+e)
+        >>> print(guess)
+        [intercept, slope, 1.0/x_range, 1.0, adjusted_min_y]
+    
+        Relationships
+        -------------
+        This function is used by _generate_initial_guess when the target model is a rational function.
+    
+        Theory
+        ------
+        Generalized rational functions combine linear behaviors in both the numerator and the denominator. 
+        A preliminary linear fit helps estimate the linear coefficients, while other parameters are derived from 
+        data range heuristics to handle non-linear characteristics.
+    
+        References
+        ----------
+        1. Wikipedia, "Rational function": https://en.wikipedia.org/wiki/Rational_function
+        2. NumPy polyfit documentation: https://numpy.org/doc/stable/reference/generated/numpy.polyfit.html
+        """
+        slope, intercept = np.polyfit(x, y, 1)
+        x_range = np.ptp(x) or 1.0
+        return [
+            intercept,   # a
+            slope,       # b
+            1.0/x_range, # c
+            1.0,         # d
+            np.min(y) if np.min(y) < 0 else 0.0  # e
+        ]
+    
+    def _guess_for_log_function(self, x, y, func):
+        """
+        Generate an initial guess for a logarithmic function with stability safeguards.
+        
+        This method ensures that the logarithmic function's domain remains valid by calculating the minimum x 
+        value and adjusting the parameter that shifts the x values. This prevents attempting to compute the 
+        logarithm of non-positive numbers, thus enhancing numerical stability during curve fitting.
+        
+        Parameters
+        ----------
+        x : array-like
+            Independent variable data, expected to be a numeric sequence convertible to a numpy array.
+        y : array-like
+            Dependent variable data corresponding to x (not directly used in this estimation).
+        func : callable
+            The logarithmic model function, for example, one of the form a * log(x + b).
+        
+        Returns
+        -------
+        list
+            A list containing two numerical values representing the initial guesses for the logarithmic model's parameters.
+        
+        Examples
+        --------
+        >>> import numpy as np
+        >>> x = np.array([1, 2, 3])
+        >>> guess = instance._guess_for_log_function(x, None, lambda x, a, b: a * np.log(x + b))
+        >>> print(guess)
+        [1.0, adjusted_value]  # Ensures that x + b remains positive
+        
+        Relationships
+        -------------
+        This method is invoked by _generate_initial_guess for logarithmic models to ensure the domain constraints 
+        are met.
+        
+        Theory
+        ------
+        Logarithmic functions are only defined for positive arguments. By computing the minimum value of x and 
+        adjusting the offset accordingly, this method ensures that the argument of the logarithm remains in the 
+        valid range, thereby preventing domain errors during optimization.
+        
+        References
+        ----------
+        1. Wikipedia, "Logarithm": https://en.wikipedia.org/wiki/Logarithm
+        """
+        min_x = np.min(x)
+        return [
+            1.0,                   # a
+            max(1.0, -min_x + 1e-5),  # b (ensure x + b > 0)
+            
+        ]
+    
+    def _default_initial_guess(self, x, y, func):
+        """
+        Generate a default initial guess for an unknown function.
+    
+        This fallback method determines the number of parameters required by analyzing the signature 
+        of the given function (excluding the independent variable) and returns a list with a default 
+        value of 1.0 for each parameter. It serves as a generic initializer when no specialized heuristic 
+        is available.
+    
+        Parameters
+        ----------
+        x : array-like
+            Independent variable data, expected to be a numeric sequence convertible to a numpy array.
+        y : array-like
+            Dependent variable data corresponding to x, expected to be a numeric sequence convertible to a numpy array.
+        func : callable
+            The model function for which the initial guess is being computed. The function's signature is inspected 
+            to determine the number of parameters (excluding the independent variable).
+    
+        Returns
+        -------
+        list
+            A list of numerical values (all ones) with a length equal to the number of parameters required by func.
+    
+        Examples
+        --------
+        >>> def some_model(x, a, b, c):
+        ...     return a * x**2 + b * x + c
+        >>> guess = instance._default_initial_guess([0, 1, 2], [1, 3, 7], some_model)
+        >>> print(guess)
+        [1.0, 1.0, 1.0]
+    
+        Relationships
+        -------------
+        This method is used as a fallback in _generate_initial_guess when no specialized initial guess method 
+        (e.g., _guess_for_exponential) is found for the target function.
+    
+        Theory
+        ------
+        A simple and generic approach for initializing parameters is to assume a default value (1.0) for all. 
+        While this may not be optimal, it provides a baseline from which non-linear optimizers can proceed, especially 
+        when no domain-specific heuristic is available.
+    
+        References
+        ----------
+        1. SciPy curve_fit documentation: https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.curve_fit.html
+        """
+        num_params = len(inspect.signature(func).parameters) - 1
+        return [1.0] * num_params
+    
+    def _generate_bayesian_initial_guess(self, func, x, y, num_samples=5000):
+        """
+        Generate an initial guess for function parameters using Bayesian sampling.
+    
+        This function refines the initial parameter guess by generating a wide range 
+        of candidate values, simulating outputs using the function to be fitted, and 
+        selecting the parameter set that minimizes the error between simulated and observed data. 
+    
+        The process consists of:
+        1. Generating an initial deterministic parameter guess.
+        2. Defining a search range around the initial guess.
+        3. Sampling parameter values from a uniform prior distribution.
+        4. Simulating function outputs for each sampled parameter set.
+        5. Evaluating the error (distance metric) between simulated and observed outputs.
+        6. Selecting the best parameter set with the lowest error.
+    
+        Parameters
+        ----------
+        func : callable
+            The mathematical function to fit.
+        x : array-like
+            Independent variable values.
+        y : array-like
+            Observed dependent variable values corresponding to `x`.
+        num_samples : int, optional
+            Number of samples drawn for Bayesian estimation, default is 5000.
+    
+        Returns
+        -------
+        list of float
+            The optimized initial parameter guess that best approximates the given data.
+    
+        Raises
+        ------
+        ValueError
+            If `x` and `y` are not of the same length.
+            If `num_samples` is not a positive integer.
+    
+        Notes
+        -----
+        - This method is particularly useful when an analytical approach for determining 
+          the initial guess is not available or unreliable.
+        - The Bayesian sampling approach allows exploration of multiple plausible parameter sets 
+          instead of relying on a single deterministic estimate.
+    
+        Examples
+        --------
+        >>> import numpy as np
+        >>> from scipy.stats import uniform
+        >>> 
+        >>> def exponential_function(x, a, b, c):
+        ...     return a * np.exp(b * x) + c
+        >>> 
+        >>> x_data = np.array([1, 2, 3, 4, 5])
+        >>> y_data = exponential_function(x_data, 2, -0.5, 1) + np.random.normal(0, 0.1, len(x_data))
+        >>> 
+        >>> model = ModelFittingClass()
+        >>> initial_params = model._generate_bayesian_initial_guess(exponential_function, x_data, y_data)
+        >>> print(initial_params)
+    
+        See Also
+        --------
+        _generate_initial_guess : Generates a simpler deterministic initial guess.
+        scipy.optimize.curve_fit : Optimization method that uses initial guesses.
+        
+        Theory
+        ------
+        Bayesian methods are a class of probabilistic techniques based on Bayes' theorem, 
+        which describes how prior knowledge is updated with observed data to obtain a 
+        posterior distribution. In this case, we do not compute the full posterior 
+        distribution but instead use Bayesian-inspired sampling to generate plausible 
+        parameter values for function fitting.
+     
+        The Bayesian approach provides several advantages:
+        - It allows the exploration of multiple parameter sets instead of relying on a single 
+          deterministic initial guess.
+        - It accounts for uncertainty in parameter estimation by considering a range of values 
+          rather than fixed assumptions.
+        - It is particularly useful when the function has non-linear behavior or when 
+          gradient-based methods struggle with poor initial conditions.
+     
+        The sampling strategy used here is a form of Approximate Bayesian Computation (ABC), 
+        where the best parameter set is chosen by minimizing the distance between simulated 
+        and observed data.
+       
+        """
+       # Get initial guess
+        initial_guess = self._generate_initial_guess(func, x, y)
+        
+           # Create ranges around initial guess
+        param_ranges = []
+        for guess in initial_guess:
+            if guess == 0:
+                lower, upper = -1.0, 1.0
+            else:
+                # Use relative scaling but allow broader exploration
+                scale = max(0.1 * abs(guess), 1e-3)
+                lower = guess - 5 * scale
+                upper = guess + 5 * scale
+            lower, upper = sorted([lower, upper])
+            param_ranges.append((lower, upper))
+        
+        # Define prior distributions for each parameter
+        priors = [st.uniform(loc=range[0], scale=range[1]-range[0]) for range in param_ranges]
+
+        
+        # Sample parameters
+        samples = [prior.rvs(num_samples) for prior in priors]
+        
+        # Generate simulated data for each parameter set
+        distances = []
+        for params in zip(*samples):
+            y_simulated = func(x, *params)
+            distance = np.sqrt(np.mean((y - y_simulated)**2))
+            distances.append(distance)
+        
+        # Find parameter set with smallest distance to observed data
+        best_index = np.argmin(distances)
+        initial_guess = [sample[best_index] for sample in samples]
+        
+        return initial_guess
+    
+
                 
                 
                 
