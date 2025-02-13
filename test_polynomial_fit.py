@@ -12,9 +12,11 @@ from Calibration_EBT3 import CurveFitter, ProcessingMode
 from sklearn.metrics import mean_squared_error
 import warnings
 from enum import Enum
+import logging
+from hypotesis import settings, st, given, assume
 
 
-class TestPolynomialFit:
+class TestPolynomialBestFit:
     """Tests best fit for the polynomial_fit method"""
     
     @pytest.fixture
