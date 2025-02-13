@@ -8,19 +8,15 @@ Created on Mon Jan  6 12:59:35 2025
 import numpy as np
 from scipy.optimize import curve_fit
 from sklearn.metrics import mean_squared_error
-from enum import Enum
 import enum
 import warnings
-from sklearn.linear_model import Ridge
 import logging
 import sys
-from scipy.optimize import least_squares
 import inspect
 import scipy.stats as st
-from scipy.optimize import differential_evolution
 
 class ProcessingMode(enum.Enum):
-    PV = 1  # Pass-through values
+    PV = 1  # Pixel Values
     OD = 2  # Optical Density
     NET_OD = 3  # Net Optical Density
     
@@ -51,7 +47,7 @@ class LoggerUtility:
         console_handler.setFormatter(formatter)
         logger.addHandler(console_handler)
         
-        # Optional file handler
+        # File handler
         if log_file:
             file_handler = logging.FileHandler(log_file)
             file_handler.setLevel(level)
@@ -71,7 +67,6 @@ class CurveFitter:
             'exponential': self._exponential,
             'combination_of_exponential': self._combination_of_exponential,
             'generalized_rational': self._generalized_rational,
-            'generalized_polynomial': self._generalized_polynomial,
             'log_function': self._log_function
         }
         
