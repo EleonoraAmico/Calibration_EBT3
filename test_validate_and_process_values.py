@@ -295,19 +295,33 @@ def test_non_finite_values():
     with pytest.warns(UserWarning):
         fitter._validate_data(x,y)
         
-def test_unknown_processing_mode():
+def test_invalid_processing_mode():
+    """
+    Process values with invalid mode
+    GIVEN: A CurveFitter instance and array of x values
+    WHEN: Processing values with an invalid mode string
+    THEN: ValueError should be raised with appropriate message
+    """
     fitter = CurveFitter()
     x_values = np.array([1000, 2000, 3000])
-    with pytest.raises(ValueError, match="Unknown processing mode"):
-        fitter._process_values(x_values, mode="invalid_mode") #Intentionally invalid mode
+    with pytest.raises(ValueError, match="Invalid processing mode: .*"):
+        fitter._process_values(x_values, mode= 'invalid') #Intentionally invalid mode
 
 def test_validate_data_invalid_input_types():
+    """
+    Validate data with invalid types
+    GIVEN: A CurveFitter instance and mixed-type input data
+    WHEN: Validating a list containing a string value
+    THEN: UserWarning should be raised and function should return False
+    """
     fitter = CurveFitter()
     # Test with invalid input types
     x = [1, 2, 'a']  #List with a string
     y = [1, 2, 3]
     with pytest.warns(UserWarning, match="Could not convert inputs to numpy arrays"):
         assert not fitter._validate_data(x,y)
+
+
 
         
     
