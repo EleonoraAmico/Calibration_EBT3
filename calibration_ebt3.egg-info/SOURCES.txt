@@ -1,0 +1,17 @@
+README.md
+setup.py
+Calibration_EBT3/Calibration_EBT3.py
+Calibration_EBT3/__init__.py
+Calibration_EBT3/plot_function.py
+calibration_ebt3.egg-info/PKG-INFO
+calibration_ebt3.egg-info/SOURCES.txt
+calibration_ebt3.egg-info/dependency_links.txt
+calibration_ebt3.egg-info/requires.txt
+calibration_ebt3.egg-info/top_level.txt
+tests/test_bayesian_initial_guess.py
+tests/test_best_fit.py
+tests/test_functions.py
+tests/test_generate_initial_guesses.py
+tests/test_log_fitting_results.py
+tests/test_polynomial_fit.py
+tests/test_validate_and_process_values.py

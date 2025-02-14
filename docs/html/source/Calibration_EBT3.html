@@ -1,0 +1,1461 @@
+
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+    <title>Calibration_EBT3 package &#8212; Calibration_EBT3 1.0 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/alabaster.css" />
+    <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+    <script src="../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="prev" title="Calibration_EBT3" href="modules.html" />
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="calibration-ebt3-package">
+<h1>Calibration_EBT3 package<a class="headerlink" href="#calibration-ebt3-package" title="Permalink to this heading">¶</a></h1>
+<section id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this heading">¶</a></h2>
+</section>
+<section id="module-Calibration_EBT3.Calibration_EBT3">
+<span id="calibration-ebt3-calibration-ebt3-module"></span><h2>Calibration_EBT3.Calibration_EBT3 module<a class="headerlink" href="#module-Calibration_EBT3.Calibration_EBT3" title="Permalink to this heading">¶</a></h2>
+<p>Created on Mon Jan  6 12:59:35 2025.</p>
+<p>&#64;author: Eleonora Cristina Amico</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="Calibration_EBT3.Calibration_EBT3.CurveFitter">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">Calibration_EBT3.Calibration_EBT3.</span></span><span class="sig-name descname"><span class="pre">CurveFitter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">log_level</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">20</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">log_file</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#Calibration_EBT3.Calibration_EBT3.CurveFitter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="Calibration_EBT3.Calibration_EBT3.CurveFitter.calculate_non_linear_fit">
+<span class="sig-name descname"><span class="pre">calculate_non_linear_fit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">ProcessingMode.PV</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">print_results</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#Calibration_EBT3.Calibration_EBT3.CurveFitter.calculate_non_linear_fit" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate the best non-linear fit for a given dataset.</p>
+<p>This function attempts to find the best-fitting function for the provided x and y values by
+iterating over a set of predefined fitting functions. For each candidate function, it generates
+multiple initial guesses (a default guess, a heuristic-based guess, and a Bayesian-inferred guess)
+and then applies non-linear least squares optimization using SciPy’s <cite>curve_fit</cite>. The function
+evaluates each fit using performance metrics (such as the Mean Squared Error) and logs detailed
+results if requested.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>(</strong><strong>array-like</strong><strong>)</strong> (<em>y</em>) – Expected to be a sequence of numeric values.</p></li>
+<li><p><strong>(</strong><strong>array-like</strong><strong>)</strong> – Expected to be a sequence of numeric values.</p></li>
+<li><p><strong>(</strong><strong>ProcessingMode</strong> (<em>mode</em>) – Defaults to ProcessingMode.PV.</p></li>
+<li><p><strong>optional</strong><strong>)</strong> (<em>If True</em><em>, </em><em>prints detailed fitting results.</em>) – Defaults to ProcessingMode.PV.</p></li>
+<li><p><strong>(</strong><strong>bool</strong> (<em>print_results</em>) – Defaults to False.</p></li>
+<li><p><strong>optional</strong><strong>)</strong> – Defaults to False.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><p><strong>list of dict</strong> –</p>
+<dl class="simple">
+<dt>Each dictionary contains:</dt><dd><ul class="simple">
+<li><p>’function’ (str): Name of the fitting function used.</p></li>
+<li><p>’coefficients’ (array-like or None): Best-fit parameters for the function.</p></li>
+<li><p>’metrics’ (dict or None): Performance metrics (e.g., Mean Squared Error).</p></li>
+<li><p>’success’ (bool): Indicates whether the fitting was successful.</p></li>
+<li><p>’error_message’ (str or None): An error message if the fitting failed.</p></li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A list where each dictionary represents the result of fitting using a specific function.</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>ValueError</strong> – If the input data (x or y) is invalid.:</p></li>
+<li><p><strong>RuntimeError</strong> – If no valid fit can be determined after trying all functions and initial guesses.:</p></li>
+</ul>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">2.2</span><span class="p">,</span> <span class="mf">2.8</span><span class="p">,</span> <span class="mf">3.6</span><span class="p">,</span> <span class="mf">4.5</span><span class="p">,</span> <span class="mf">5.1</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">results</span> <span class="o">=</span> <span class="n">fitter</span><span class="o">.</span><span class="n">calculate_non_linear_fit</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="n">ProcessingMode</span><span class="o">.</span><span class="n">PV</span><span class="p">,</span> <span class="n">print_results</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">for</span> <span class="n">res</span> <span class="ow">in</span> <span class="n">results</span><span class="p">:</span>
+<span class="gp">... </span>    <span class="k">if</span> <span class="n">res</span><span class="p">[</span><span class="s1">&#39;success&#39;</span><span class="p">]:</span>
+<span class="gp">... </span>        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Best fit for </span><span class="si">{</span><span class="n">res</span><span class="p">[</span><span class="s1">&#39;function&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">res</span><span class="p">[</span><span class="s1">&#39;coefficients&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="gp">... </span>    <span class="k">else</span><span class="p">:</span>
+<span class="gp">... </span>        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Fitting failed for </span><span class="si">{</span><span class="n">res</span><span class="p">[</span><span class="s1">&#39;function&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">res</span><span class="p">[</span><span class="s1">&#39;error_message&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<blockquote>
+<div><dl class="simple">
+<dt>This method utilizes:</dt><dd><ul class="simple">
+<li><p>self._validate_data() for input data validation.</p></li>
+<li><p>self._process_values() for preprocessing x-values.</p></li>
+<li><p>self._generate_initial_guess() and self._generate_bayesian_initial_guess() to obtain initial guesses.</p></li>
+<li><p>SciPy’s <cite>curve_fit</cite> for performing the non-linear least squares optimization.</p></li>
+</ul>
+</dd>
+</dl>
+</div></blockquote>
+<blockquote>
+<div><p>The non-linear curve fitting is based on the least squares method, which minimizes the sum of
+squared differences between observed and predicted values. This method is a fundamental tool in
+statistical modeling and is widely used in data fitting tasks.</p>
+</div></blockquote>
+<p class="rubric">References</p>
+<ul class="simple">
+<li><p>“Least Squares”, Wikipedia: <a class="reference external" href="https://en.wikipedia.org/wiki/Least_squares">https://en.wikipedia.org/wiki/Least_squares</a></p></li>
+<li><p>SciPy’s curve_fit documentation: <a class="reference external" href="https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.curve_fit.html">https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.curve_fit.html</a></p></li>
+</ul>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="Calibration_EBT3.Calibration_EBT3.CurveFitter.log_fitting_results">
+<span class="sig-name descname"><span class="pre">log_fitting_results</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fitting_results</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#Calibration_EBT3.Calibration_EBT3.CurveFitter.log_fitting_results" title="Permalink to this definition">¶</a></dt>
+<dd><p>Logs a formatted summary of polynomial and non-linear fitting
+results, highlighting success states and key metrics while flagging
+failed attempts.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>fitting_results</strong> (<em>list of dict</em>) – <p>List of fitting result dictionaries with structure:
+- ‘function’ : str</p>
+<blockquote>
+<div><p>Function identifier (e.g., ‘polynomial_degree_2’)</p>
+</div></blockquote>
+<ul class="simple">
+<li><dl class="simple">
+<dt>’metrics’<span class="classifier">dict or None</span></dt><dd><p>Quality metrics (present if successful):
+- ‘score’: float - Composite score balancing accuracy/complexity
+- ‘mse’: float - Mean squared error</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>’success’<span class="classifier">bool</span></dt><dd><p>Fit success indicator</p>
+</dd>
+</dl>
+</li>
+<li><p>Additional keys may exist but are not logged here</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>Output Formatting:
+- Polynomial functions: Displayed as ‘Polynomial Degree N’
+- Other functions: Converted to Title Case (e.g., ‘_exponential’ -&gt; ‘Exponential’)
+- Scientific notation: Metrics shown with 2 decimal places (e.g., 1.23e-04)
+- Failed fits: Display ‘Failed’ and use warning level logging</p>
+<p>Logging Levels:
+- INFO: Successfully fitted functions with metrics
+- WARNING: Failed fitting attempts</p>
+<p>Display Order:
+- Results are logged in the order they appear in the input list</p>
+<p class="rubric">Examples</p>
+<dl class="simple">
+<dt>Typical log output:</dt><dd><p>INFO: Fitting Results Summary:
+INFO: Polynomial Degree 2: score = 1.23e-01, mse = 5.67e-03
+WARNING: Exponential: Fitting Failed</p>
+</dd>
+</dl>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<dl class="simple">
+<dt><a class="reference internal" href="#Calibration_EBT3.Calibration_EBT3.CurveFitter.polynomial_fit" title="Calibration_EBT3.Calibration_EBT3.CurveFitter.polynomial_fit"><code class="xref py py-obj docutils literal notranslate"><span class="pre">polynomial_fit</span></code></a></dt><dd><p>Generates the fitting results logged by this method</p>
+</dd>
+<dt><a class="reference internal" href="#Calibration_EBT3.Calibration_EBT3.CurveFitter.calculate_non_linear_fit" title="Calibration_EBT3.Calibration_EBT3.CurveFitter.calculate_non_linear_fit"><code class="xref py py-obj docutils literal notranslate"><span class="pre">calculate_non_linear_fit</span></code></a></dt><dd><p>Generates the fitting results for non-linear function</p>
+</dd>
+</dl>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="Calibration_EBT3.Calibration_EBT3.CurveFitter.polynomial_fit">
+<span class="sig-name descname"><span class="pre">polynomial_fit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">ProcessingMode.PV</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_degree</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">4</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#Calibration_EBT3.Calibration_EBT3.CurveFitter.polynomial_fit" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate the best polynomial fit for a given dataset.</p>
+<p>Fits polynomials of varying degrees to the input data with automatic degree
+optimization and numerical stability measures. The function performs data validation,
+normalization, and handles various edge cases.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<em>array-like</em>) – Independent variable values (e.g., measurement values).
+Must contain at least 2 distinct points for fitting.</p></li>
+<li><p><strong>y</strong> (<em>array-like</em>) – Dependent variable values (e.g., dose values).
+Must have the same length as x.</p></li>
+<li><p><strong>mode</strong> (<a class="reference internal" href="#Calibration_EBT3.Calibration_EBT3.ProcessingMode" title="Calibration_EBT3.Calibration_EBT3.ProcessingMode"><em>ProcessingMode</em></a><em>, </em><em>default=ProcessingMode.PV</em>) – Processing mode for x values before fitting. Options:
+- PV: Uses raw values
+- OD: Applies optical density transformation
+- NET_OD: Applies net optical density transformation</p></li>
+<li><p><strong>max_degree</strong> (<em>int</em><em>, </em><em>default=4</em>) – Maximum polynomial degree to attempt. The actual maximum degree used
+may be lower based on the number of data points (n_points//2).
+Values above 4 trigger a warning about potential overfitting.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>List of fitting results for each polynomial degree attempted.
+Each dictionary contains:
+- ‘function’ : str
+Name of the fit (e.g., ‘polynomial_degree_2’)
+- ‘metrics’ : dict
+Fit quality metrics including:
+- ‘mse’: Mean squared error
+- ‘score’: Composite score considering complexity
+- ‘polynomial’ : numpy.poly1d
+Fitted polynomial function
+- ‘coefficients’ : array
+Polynomial coefficients in descending order
+- ‘degree’ : int
+Polynomial degree
+- ‘success’ : bool
+Whether the fit succeeded
+- ‘error_message’ : str, optional
+Present only if fit failed</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list of dict</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>Fitting Process:
+1. Data validation using _validate_data
+2. X-value processing according to specified mode
+3. Edge case handling (constant x or y values)
+4. Data normalization for numerical stability
+5. Degree limitation based on sample size
+6. Polynomial fitting with coefficient conversion
+7. Metrics calculation for each successful fit</p>
+<dl class="simple">
+<dt>Numerical Stability:</dt><dd><ul class="simple">
+<li><p>Input data is normalized using mean and standard deviation</p></li>
+<li><p>Coefficients are converted back to original scale</p></li>
+<li><p>Polynomial evaluations use normalized x values internally</p></li>
+</ul>
+</dd>
+<dt>Warnings are generated when:</dt><dd><ul class="simple">
+<li><p>max_degree &gt; 4 (overfitting risk)</p></li>
+<li><p>max_degree is reduced due to sample size</p></li>
+</ul>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="c1"># Example with quadratic data and best fit selection</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Generate sample data (quadratic function with noise)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">y</span> <span class="o">=</span> <span class="mi">2</span><span class="o">*</span><span class="n">x</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Fit polynomials of different degrees</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">fitting_results</span> <span class="o">=</span> <span class="n">polynomial_fit</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">max_degree</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Recommended: Use select_best_fit to choose optimal model</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">best_func</span><span class="p">,</span> <span class="n">best_coeff</span><span class="p">,</span> <span class="n">best_score</span><span class="p">,</span> <span class="n">all_results</span> <span class="o">=</span> <span class="n">select_best_fit</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="n">fitting_results</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">selection_metric</span><span class="o">=</span><span class="s1">&#39;score&#39;</span>  <span class="c1"># &#39;score&#39; metric recommended for polynomials</span>
+<span class="gp">... </span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># The selected model is typically the one that best balances</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># accuracy and complexity. In this case, it should select</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># degree 2 as it matches the true underlying function.</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Selected polynomial degree: </span><span class="si">{</span><span class="n">best_func</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;_&#39;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="go">Selected polynomial degree: 2</span>
+</pre></div>
+</div>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="c1"># Not Recommended: Manual selection using only MSE</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># This might lead to overfitting</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">worst_fit</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">fitting_results</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">r</span><span class="p">:</span> <span class="n">r</span><span class="p">[</span><span class="s1">&#39;metrics&#39;</span><span class="p">][</span><span class="s1">&#39;mse&#39;</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Degree selected by MSE only: </span><span class="si">{</span><span class="n">worst_fit</span><span class="p">[</span><span class="s1">&#39;degree&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="go">Degree selected by MSE only: 4  # Often overfits</span>
+</pre></div>
+</div>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="c1"># Handling constant y values</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">y_const</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full_like</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="mf">5.0</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">results</span> <span class="o">=</span> <span class="n">polynomial_fit</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y_const</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">results</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;degree&#39;</span><span class="p">])</span>  <span class="c1"># Returns degree 0</span>
+<span class="go">0</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ValueError</strong> – </p></li>
+<li><p><strong>- When number of points is insufficient for fitting</strong> – </p></li>
+<li><p><strong>- When all x values are constant</strong> – </p></li>
+<li><p><strong>- When data validation fails</strong> – </p></li>
+</ul>
+</dd>
+</dl>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<dl class="simple">
+<dt><a class="reference internal" href="#Calibration_EBT3.Calibration_EBT3.CurveFitter.select_best_fit" title="Calibration_EBT3.Calibration_EBT3.CurveFitter.select_best_fit"><code class="xref py py-obj docutils literal notranslate"><span class="pre">select_best_fit</span></code></a></dt><dd><p>Recommended function for selecting optimal polynomial degree</p>
+</dd>
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">numpy.polyfit</span></code></dt><dd><p>Used internally for polynomial fitting</p>
+</dd>
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">_validate_data</span></code></dt><dd><p>Data validation function</p>
+</dd>
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">_process_values</span></code></dt><dd><p>Value processing function</p>
+</dd>
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">_calculate_metrics</span></code></dt><dd><p>Metrics calculation function</p>
+</dd>
+</dl>
+</div>
+<blockquote>
+<div><p>Polynomial fitting approximates the relationship between independent and dependent variables
+by modeling the data as a polynomial function. This method uses the least squares approach
+to minimize the sum of squared differences between observed data and the polynomial model.
+The choice of polynomial degree is critical: lower degrees may underfit the data, while
+higher degrees risk overfitting. To address numerical instability, the function normalizes
+the data, ensuring that the computations remain stable, especially when working with
+high-degree polynomials or large magnitude values.</p>
+</div></blockquote>
+<blockquote>
+<div><ol class="arabic simple">
+<li><p>Wikipedia contributors, “Polynomial Regression,” <em>Wikipedia, The Free Encyclopedia</em>,
+<a class="reference external" href="https://en.wikipedia.org/wiki/Polynomial_regression">https://en.wikipedia.org/wiki/Polynomial_regression</a>.</p></li>
+<li><p>NumPy Documentation, “numpy.polyfit”, <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.polyfit.html">https://numpy.org/doc/stable/reference/generated/numpy.polyfit.html</a>.</p></li>
+</ol>
+</div></blockquote>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="Calibration_EBT3.Calibration_EBT3.CurveFitter.select_best_fit">
+<span class="sig-name descname"><span class="pre">select_best_fit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fitting_results</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">selection_metric</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'score'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#Calibration_EBT3.Calibration_EBT3.CurveFitter.select_best_fit" title="Permalink to this definition">¶</a></dt>
+<dd><p>Selects the best fitting function from a list of candidate fits
+based on specified metrics.</p>
+<p>The function filters successful fits and chooses the one with the lowest
+metric value.
+The ‘score’ metric is particularly recommended for polynomial fits as it effectively
+balances accuracy with model complexity, helping prevent overfitting. It penalizes
+higher-degree polynomials when they don’t provide significant improvements in fit quality.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>fitting_results</strong> (<em>list of dict</em>) – <p>List of dictionaries containing fitting results. Each dictionary must contain:
+- ‘success’ : bool</p>
+<blockquote>
+<div><p>Indicates if the fit was successful</p>
+</div></blockquote>
+<ul>
+<li><dl class="simple">
+<dt>’function’<span class="classifier">callable</span></dt><dd><p>The fitted function</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>’coefficients’<span class="classifier">array-like</span></dt><dd><p>The fitted parameters</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>’metrics’<span class="classifier">dict</span></dt><dd><dl class="simple">
+<dt>Dictionary of metric values including:</dt><dd><ul>
+<li><p>’score’ : float</p></li>
+<li><p>’mse’ : float</p></li>
+<li><p>Other available metrics</p></li>
+</ul>
+</dd>
+</dl>
+</dd>
+</dl>
+</li>
+</ul>
+</p></li>
+<li><p><strong>selection_metric</strong> (<em>str</em><em>, </em><em>default='score'</em>) – The metric to use for selecting the best fit. Must be a key in the metrics
+dictionary. Lower values are considered better.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>function</strong> (<em>callable or None</em>) – The best fitting function. None if no successful fits found.</p></li>
+<li><p><strong>coefficients</strong> (<em>array-like or None</em>) – Parameters of the best fit. None if no successful fits found.</p></li>
+<li><p><strong>best_score</strong> (<em>float or None</em>) – Value of the selection metric for the best fit. None if no successful fits found.</p></li>
+<li><p><strong>fitting_results</strong> (<em>list of dict</em>) – The original fitting results list, unchanged.</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>Selection Process:
+1. Filters out unsuccessful fits
+2. Compares remaining fits using the specified metric
+3. Selects the fit with the lowest metric value
+4. Logs debug information about the selected fit</p>
+<p>The function handles several edge cases:
+- Empty fitting_results list
+- No successful fits
+- Missing metric values
+- Errors during comparison</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>WARNING level: When no successful fits are found</p></li>
+<li><p>ERROR level: When errors occur during selection</p></li>
+<li><p>DEBUG level: Selected function details and metric values</p></li>
+</ul>
+</div></blockquote>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="c1"># Example with polynomial fits of different degrees</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># True function: f(x) = 2x² + 1</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">y</span> <span class="o">=</span> <span class="mi">2</span><span class="o">*</span><span class="n">x</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>  <span class="c1"># Add some noise</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Quadratic fit (correct degree)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">quad_fit</span> <span class="o">=</span> <span class="p">{</span>
+<span class="gp">... </span>    <span class="s1">&#39;success&#39;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="s1">&#39;function&#39;</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">c</span><span class="p">:</span> <span class="n">a</span><span class="o">*</span><span class="n">x</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">b</span><span class="o">*</span><span class="n">x</span> <span class="o">+</span> <span class="n">c</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="s1">&#39;coefficients&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mf">1.98</span><span class="p">,</span> <span class="mf">0.05</span><span class="p">,</span> <span class="mf">1.02</span><span class="p">],</span>  <span class="c1"># Close to true values</span>
+<span class="gp">... </span>    <span class="s1">&#39;metrics&#39;</span><span class="p">:</span> <span class="p">{</span>
+<span class="gp">... </span>        <span class="s1">&#39;score&#39;</span><span class="p">:</span> <span class="mf">0.015</span><span class="p">,</span>  <span class="c1"># Better score</span>
+<span class="gp">... </span>        <span class="s1">&#39;mse&#39;</span><span class="p">:</span> <span class="mf">0.01</span>
+<span class="gp">... </span>    <span class="p">}</span>
+<span class="gp">... </span><span class="p">}</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Cubic fit (overfitting)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">cubic_fit</span> <span class="o">=</span> <span class="p">{</span>
+<span class="gp">... </span>    <span class="s1">&#39;success&#39;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="s1">&#39;function&#39;</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">d</span><span class="p">:</span> <span class="n">a</span><span class="o">*</span><span class="n">x</span><span class="o">**</span><span class="mi">3</span> <span class="o">+</span> <span class="n">b</span><span class="o">*</span><span class="n">x</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">c</span><span class="o">*</span><span class="n">x</span> <span class="o">+</span> <span class="n">d</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="s1">&#39;coefficients&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.1</span><span class="p">,</span> <span class="mf">1.85</span><span class="p">,</span> <span class="mf">0.15</span><span class="p">,</span> <span class="mf">0.98</span><span class="p">],</span>
+<span class="gp">... </span>    <span class="s1">&#39;metrics&#39;</span><span class="p">:</span> <span class="p">{</span>
+<span class="gp">... </span>        <span class="s1">&#39;score&#39;</span><span class="p">:</span> <span class="mf">0.028</span><span class="p">,</span>  <span class="c1"># Worse score due to complexity penalty</span>
+<span class="gp">... </span>        <span class="s1">&#39;mse&#39;</span><span class="p">:</span> <span class="mf">0.009</span>    <span class="c1"># Slightly better MSE but overfitting</span>
+<span class="gp">... </span>    <span class="p">}</span>
+<span class="gp">... </span><span class="p">}</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">fits</span> <span class="o">=</span> <span class="p">[</span><span class="n">quad_fit</span><span class="p">,</span> <span class="n">cubic_fit</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">func</span><span class="p">,</span> <span class="n">coef</span><span class="p">,</span> <span class="n">score</span><span class="p">,</span> <span class="n">results</span> <span class="o">=</span> <span class="n">select_best_fit</span><span class="p">(</span><span class="n">fits</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Best score: </span><span class="si">{</span><span class="n">score</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>  <span class="c1"># Will select quadratic fit</span>
+<span class="go">Best score: 0.015</span>
+</pre></div>
+</div>
+<p>In this example, although the cubic fit has a slightly better MSE, the quadratic
+fit is correctly selected because:
+1. It has the right complexity for the true underlying function
+2. The score metric penalizes the unnecessary complexity of the cubic fit
+3. The coefficient ratio is better (closer to true function parameters)</p>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<dl class="simple">
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">calculate_metrics</span></code></dt><dd><p>Function used to generate the metrics used in selection</p>
+</dd>
+</dl>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>Logs errors but does not raise exceptions. Returns None values on failure.</strong> – </p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="Calibration_EBT3.Calibration_EBT3.LoggerUtility">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">Calibration_EBT3.Calibration_EBT3.</span></span><span class="sig-name descname"><span class="pre">LoggerUtility</span></span><a class="headerlink" href="#Calibration_EBT3.Calibration_EBT3.LoggerUtility" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="Calibration_EBT3.Calibration_EBT3.LoggerUtility.create_logger">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">create_logger</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">level</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">20</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">log_file</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#Calibration_EBT3.Calibration_EBT3.LoggerUtility.create_logger" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a configured logger with optional file output.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>(</strong><strong>str</strong><strong>)</strong> (<em>name</em>) – </p></li>
+<li><p><strong>(</strong><strong>int</strong><strong>)</strong> (<em>level</em>) – </p></li>
+<li><p><strong>(</strong><strong>str</strong> (<em>log_file</em>) – </p></li>
+<li><p><strong>optional</strong><strong>)</strong> (<em>Path to log file</em>) – </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>logging.Logger</strong></p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Configured logger</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="Calibration_EBT3.Calibration_EBT3.ProcessingMode">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">Calibration_EBT3.Calibration_EBT3.</span></span><span class="sig-name descname"><span class="pre">ProcessingMode</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#Calibration_EBT3.Calibration_EBT3.ProcessingMode" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Enum</span></code></p>
+<p>Enumeration of processing modes for image analysis.</p>
+<p>This enum defines different modes for processing image data, particularly
+in the context of optical and pixel-based measurements.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>PV</strong> (<em>int</em>) – Pixel Values mode. Processes raw pixel intensity values.</p></li>
+<li><p><strong>OD</strong> (<em>int</em>) – Optical Density mode. Converts pixel values to optical density measurements.</p></li>
+<li><p><strong>NET_OD</strong> (<em>int</em>) – Net Optical Density mode. Calculates optical density with background correction.</p></li>
+</ul>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">mode</span> <span class="o">=</span> <span class="n">ProcessingMode</span><span class="o">.</span><span class="n">PV</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">mode</span><span class="p">)</span>
+<span class="go">ProcessingMode.PV</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">mode</span> <span class="o">=</span> <span class="n">ProcessingMode</span><span class="o">.</span><span class="n">OD</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">mode</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+<span class="go">2</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">mode</span> <span class="o">=</span> <span class="n">ProcessingMode</span><span class="o">.</span><span class="n">NET_OD</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">mode</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+<span class="go">NET_OD</span>
+</pre></div>
+</div>
+<p class="rubric">Notes</p>
+<ul class="simple">
+<li><p>PV mode works with raw pixel values and is suitable for basic image analysis</p></li>
+<li><p>OD mode applies logarithmic transformation to calculate optical density</p></li>
+<li><p>NET_OD mode includes background correction in optical density calculations</p></li>
+</ul>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="Calibration_EBT3.Calibration_EBT3.ProcessingMode.NET_OD">
+<span class="sig-name descname"><span class="pre">NET_OD</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">3</span></em><a class="headerlink" href="#Calibration_EBT3.Calibration_EBT3.ProcessingMode.NET_OD" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="Calibration_EBT3.Calibration_EBT3.ProcessingMode.OD">
+<span class="sig-name descname"><span class="pre">OD</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">2</span></em><a class="headerlink" href="#Calibration_EBT3.Calibration_EBT3.ProcessingMode.OD" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="Calibration_EBT3.Calibration_EBT3.ProcessingMode.PV">
+<span class="sig-name descname"><span class="pre">PV</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1</span></em><a class="headerlink" href="#Calibration_EBT3.Calibration_EBT3.ProcessingMode.PV" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-Calibration_EBT3.plot_function">
+<span id="calibration-ebt3-plot-function-module"></span><h2>Calibration_EBT3.plot_function module<a class="headerlink" href="#module-Calibration_EBT3.plot_function" title="Permalink to this heading">¶</a></h2>
+<p>Created on Thu Jan  9 11:34:55 2025</p>
+<p>&#64;author: Eleonora Cristina Amico</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="Calibration_EBT3.plot_function.FitPlotter">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">Calibration_EBT3.plot_function.</span></span><span class="sig-name descname"><span class="pre">FitPlotter</span></span><a class="headerlink" href="#Calibration_EBT3.plot_function.FitPlotter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#Calibration_EBT3.Calibration_EBT3.CurveFitter" title="Calibration_EBT3.Calibration_EBT3.CurveFitter"><code class="xref py py-class docutils literal notranslate"><span class="pre">CurveFitter</span></code></a></p>
+<dl class="py class">
+<dt class="sig sig-object py" id="Calibration_EBT3.plot_function.FitPlotter.PlotType">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">PlotType</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#Calibration_EBT3.plot_function.FitPlotter.PlotType" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Enum</span></code></p>
+<p>Enumeration of available plot types for visualization.</p>
+<p>This enum defines different types of plots that can be generated
+for visualizing curve fitting results.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ALL</strong> (<em>str</em>) – Generates all available plot types at once.</p></li>
+<li><p><strong>POLYNOMIAL</strong> (<em>str</em>) – Plots only polynomial fitting results.</p></li>
+<li><p><strong>FUNCTION</strong> (<em>str</em>) – Plots only function-based fitting results.</p></li>
+<li><p><strong>BEST_FIT</strong> (<em>str</em>) – Plots only the best fitting curve based on error metrics.</p></li>
+</ul>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">plot_type</span> <span class="o">=</span> <span class="n">PlotType</span><span class="o">.</span><span class="n">ALL</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">plot_type</span><span class="p">)</span>
+<span class="go">PlotType.ALL</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">plot_type</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+<span class="go">&#39;all&#39;</span>
+</pre></div>
+</div>
+<p class="rubric">Notes</p>
+<ul class="simple">
+<li><p>ALL generates a comprehensive visualization with all fitting attempts</p></li>
+<li><p>POLYNOMIAL is useful when focusing on polynomial regression analysis</p></li>
+<li><p>FUNCTION shows results from predefined fitting functions</p></li>
+<li><p>BEST_FIT displays only the optimal fitting result</p></li>
+</ul>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="Calibration_EBT3.plot_function.FitPlotter.PlotType.ALL">
+<span class="sig-name descname"><span class="pre">ALL</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'all'</span></em><a class="headerlink" href="#Calibration_EBT3.plot_function.FitPlotter.PlotType.ALL" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="Calibration_EBT3.plot_function.FitPlotter.PlotType.BEST_FIT">
+<span class="sig-name descname"><span class="pre">BEST_FIT</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'best</span> <span class="pre">fit'</span></em><a class="headerlink" href="#Calibration_EBT3.plot_function.FitPlotter.PlotType.BEST_FIT" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="Calibration_EBT3.plot_function.FitPlotter.PlotType.FUNCTION">
+<span class="sig-name descname"><span class="pre">FUNCTION</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'function'</span></em><a class="headerlink" href="#Calibration_EBT3.plot_function.FitPlotter.PlotType.FUNCTION" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="Calibration_EBT3.plot_function.FitPlotter.PlotType.POLYNOMIAL">
+<span class="sig-name descname"><span class="pre">POLYNOMIAL</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'polynomial'</span></em><a class="headerlink" href="#Calibration_EBT3.plot_function.FitPlotter.PlotType.POLYNOMIAL" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="Calibration_EBT3.plot_function.FitPlotter.plot_fits">
+<span class="sig-name descname"><span class="pre">plot_fits</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x_data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">title</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'Fits'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">plot_type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">PlotType.ALL</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">function_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">ProcessingMode.PV</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#Calibration_EBT3.plot_function.FitPlotter.plot_fits" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generate plots for various curve fitting results based on the specified plot type.</p>
+<p>This function coordinates different types of curve fitting and plotting operations. It can generate
+plots for all fits, polynomial fits only, a specific function fit, or the best fit. The function
+performs both non-linear and polynomial fitting before creating the requested plots.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>(</strong><strong>numpy.ndarray</strong><strong>)</strong> (<em>y_data</em>) – </p></li>
+<li><p><strong>(</strong><strong>numpy.ndarray</strong><strong>)</strong> – </p></li>
+<li><p><strong>(</strong><strong>str</strong> (<em>function_name</em>) – </p></li>
+<li><p><strong>optional</strong><strong>)</strong> (<em>Processing mode for x-values. Defaults to ProcessingMode.PV</em>) – </p></li>
+<li><p><strong>(</strong><strong>PlotType</strong> (<em>plot_type</em>) – Available options:
+- PlotType.ALL: Plot all available fits
+- PlotType.POLYNOMIAL: Plot only polynomial fits
+- PlotType.FUNCTION: Plot a specific function fit
+- PlotType.BEST_FIT: Plot only the best fit</p></li>
+<li><p><strong>optional</strong><strong>)</strong> – Available options:
+- PlotType.ALL: Plot all available fits
+- PlotType.POLYNOMIAL: Plot only polynomial fits
+- PlotType.FUNCTION: Plot a specific function fit
+- PlotType.BEST_FIT: Plot only the best fit</p></li>
+<li><p><strong>(</strong><strong>str</strong> – Required if plot_type is PlotType.FUNCTION. Defaults to None</p></li>
+<li><p><strong>optional</strong><strong>)</strong> – Required if plot_type is PlotType.FUNCTION. Defaults to None</p></li>
+<li><p><strong>(</strong><strong>ProcessingMode</strong> (<em>mode</em>) – Available options:
+- ProcessingMode.PV: Process as pixel values
+- ProcessingMode.OD: Process as optical density
+- ProcessingMode.netOD: Process as net optical density</p></li>
+<li><p><strong>optional</strong><strong>)</strong> – Available options:
+- ProcessingMode.PV: Process as pixel values
+- ProcessingMode.OD: Process as optical density
+- ProcessingMode.netOD: Process as net optical density</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>None</strong></p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Displays the requested plots</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>Exception</strong> – If there’s an error processing x values, the error will be caught and printed:</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<ul class="simple">
+<li><p>Requires calculate_non_linear_fit and polynomial_fit methods to be available through inheritance</p></li>
+<li><dl class="simple">
+<dt>Will print error messages and return early if:</dt><dd><ul>
+<li><p>No valid fitting results are available</p></li>
+<li><p>Function name is not provided when plot_type is FUNCTION</p></li>
+<li><p>Error occurs during x value processing</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="Calibration_EBT3.plot_function.PlotType">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">Calibration_EBT3.plot_function.</span></span><span class="sig-name descname"><span class="pre">PlotType</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#Calibration_EBT3.plot_function.PlotType" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Enum</span></code></p>
+<p>Enumeration of available plot types for visualization.</p>
+<p>This enum defines different types of plots that can be generated
+for visualizing curve fitting results.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ALL</strong> (<em>str</em>) – Generates all available plot types at once.</p></li>
+<li><p><strong>POLYNOMIAL</strong> (<em>str</em>) – Plots only polynomial fitting results.</p></li>
+<li><p><strong>FUNCTION</strong> (<em>str</em>) – Plots only function-based fitting results.</p></li>
+<li><p><strong>BEST_FIT</strong> (<em>str</em>) – Plots only the best fitting curve based on error metrics.</p></li>
+</ul>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">plot_type</span> <span class="o">=</span> <span class="n">PlotType</span><span class="o">.</span><span class="n">ALL</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">plot_type</span><span class="p">)</span>
+<span class="go">PlotType.ALL</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">plot_type</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+<span class="go">&#39;all&#39;</span>
+</pre></div>
+</div>
+<p class="rubric">Notes</p>
+<ul class="simple">
+<li><p>ALL generates a comprehensive visualization with all fitting attempts</p></li>
+<li><p>POLYNOMIAL is useful when focusing on polynomial regression analysis</p></li>
+<li><p>FUNCTION shows results from predefined fitting functions</p></li>
+<li><p>BEST_FIT displays only the optimal fitting result</p></li>
+</ul>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="Calibration_EBT3.plot_function.PlotType.ALL">
+<span class="sig-name descname"><span class="pre">ALL</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'all'</span></em><a class="headerlink" href="#Calibration_EBT3.plot_function.PlotType.ALL" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="Calibration_EBT3.plot_function.PlotType.BEST_FIT">
+<span class="sig-name descname"><span class="pre">BEST_FIT</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'best</span> <span class="pre">fit'</span></em><a class="headerlink" href="#Calibration_EBT3.plot_function.PlotType.BEST_FIT" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="Calibration_EBT3.plot_function.PlotType.FUNCTION">
+<span class="sig-name descname"><span class="pre">FUNCTION</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'function'</span></em><a class="headerlink" href="#Calibration_EBT3.plot_function.PlotType.FUNCTION" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="Calibration_EBT3.plot_function.PlotType.POLYNOMIAL">
+<span class="sig-name descname"><span class="pre">POLYNOMIAL</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'polynomial'</span></em><a class="headerlink" href="#Calibration_EBT3.plot_function.PlotType.POLYNOMIAL" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-Calibration_EBT3">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-Calibration_EBT3" title="Permalink to this heading">¶</a></h2>
+<p>Created on Thu Feb 13 21:54:51 2025</p>
+<p>&#64;author: Ele_p</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="Calibration_EBT3.CurveFitter">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">Calibration_EBT3.</span></span><span class="sig-name descname"><span class="pre">CurveFitter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">log_level</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">20</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">log_file</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#Calibration_EBT3.CurveFitter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="Calibration_EBT3.CurveFitter.calculate_non_linear_fit">
+<span class="sig-name descname"><span class="pre">calculate_non_linear_fit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">ProcessingMode.PV</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">print_results</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#Calibration_EBT3.CurveFitter.calculate_non_linear_fit" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate the best non-linear fit for a given dataset.</p>
+<p>This function attempts to find the best-fitting function for the provided x and y values by
+iterating over a set of predefined fitting functions. For each candidate function, it generates
+multiple initial guesses (a default guess, a heuristic-based guess, and a Bayesian-inferred guess)
+and then applies non-linear least squares optimization using SciPy’s <cite>curve_fit</cite>. The function
+evaluates each fit using performance metrics (such as the Mean Squared Error) and logs detailed
+results if requested.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>(</strong><strong>array-like</strong><strong>)</strong> (<em>y</em>) – Expected to be a sequence of numeric values.</p></li>
+<li><p><strong>(</strong><strong>array-like</strong><strong>)</strong> – Expected to be a sequence of numeric values.</p></li>
+<li><p><strong>(</strong><strong>ProcessingMode</strong> (<em>mode</em>) – Defaults to ProcessingMode.PV.</p></li>
+<li><p><strong>optional</strong><strong>)</strong> (<em>If True</em><em>, </em><em>prints detailed fitting results.</em>) – Defaults to ProcessingMode.PV.</p></li>
+<li><p><strong>(</strong><strong>bool</strong> (<em>print_results</em>) – Defaults to False.</p></li>
+<li><p><strong>optional</strong><strong>)</strong> – Defaults to False.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><p><strong>list of dict</strong> –</p>
+<dl class="simple">
+<dt>Each dictionary contains:</dt><dd><ul class="simple">
+<li><p>’function’ (str): Name of the fitting function used.</p></li>
+<li><p>’coefficients’ (array-like or None): Best-fit parameters for the function.</p></li>
+<li><p>’metrics’ (dict or None): Performance metrics (e.g., Mean Squared Error).</p></li>
+<li><p>’success’ (bool): Indicates whether the fitting was successful.</p></li>
+<li><p>’error_message’ (str or None): An error message if the fitting failed.</p></li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A list where each dictionary represents the result of fitting using a specific function.</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>ValueError</strong> – If the input data (x or y) is invalid.:</p></li>
+<li><p><strong>RuntimeError</strong> – If no valid fit can be determined after trying all functions and initial guesses.:</p></li>
+</ul>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">2.2</span><span class="p">,</span> <span class="mf">2.8</span><span class="p">,</span> <span class="mf">3.6</span><span class="p">,</span> <span class="mf">4.5</span><span class="p">,</span> <span class="mf">5.1</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">results</span> <span class="o">=</span> <span class="n">fitter</span><span class="o">.</span><span class="n">calculate_non_linear_fit</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="n">ProcessingMode</span><span class="o">.</span><span class="n">PV</span><span class="p">,</span> <span class="n">print_results</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">for</span> <span class="n">res</span> <span class="ow">in</span> <span class="n">results</span><span class="p">:</span>
+<span class="gp">... </span>    <span class="k">if</span> <span class="n">res</span><span class="p">[</span><span class="s1">&#39;success&#39;</span><span class="p">]:</span>
+<span class="gp">... </span>        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Best fit for </span><span class="si">{</span><span class="n">res</span><span class="p">[</span><span class="s1">&#39;function&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">res</span><span class="p">[</span><span class="s1">&#39;coefficients&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="gp">... </span>    <span class="k">else</span><span class="p">:</span>
+<span class="gp">... </span>        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Fitting failed for </span><span class="si">{</span><span class="n">res</span><span class="p">[</span><span class="s1">&#39;function&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">res</span><span class="p">[</span><span class="s1">&#39;error_message&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<blockquote>
+<div><dl class="simple">
+<dt>This method utilizes:</dt><dd><ul class="simple">
+<li><p>self._validate_data() for input data validation.</p></li>
+<li><p>self._process_values() for preprocessing x-values.</p></li>
+<li><p>self._generate_initial_guess() and self._generate_bayesian_initial_guess() to obtain initial guesses.</p></li>
+<li><p>SciPy’s <cite>curve_fit</cite> for performing the non-linear least squares optimization.</p></li>
+</ul>
+</dd>
+</dl>
+</div></blockquote>
+<blockquote>
+<div><p>The non-linear curve fitting is based on the least squares method, which minimizes the sum of
+squared differences between observed and predicted values. This method is a fundamental tool in
+statistical modeling and is widely used in data fitting tasks.</p>
+</div></blockquote>
+<p class="rubric">References</p>
+<ul class="simple">
+<li><p>“Least Squares”, Wikipedia: <a class="reference external" href="https://en.wikipedia.org/wiki/Least_squares">https://en.wikipedia.org/wiki/Least_squares</a></p></li>
+<li><p>SciPy’s curve_fit documentation: <a class="reference external" href="https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.curve_fit.html">https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.curve_fit.html</a></p></li>
+</ul>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="Calibration_EBT3.CurveFitter.log_fitting_results">
+<span class="sig-name descname"><span class="pre">log_fitting_results</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fitting_results</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#Calibration_EBT3.CurveFitter.log_fitting_results" title="Permalink to this definition">¶</a></dt>
+<dd><p>Logs a formatted summary of polynomial and non-linear fitting
+results, highlighting success states and key metrics while flagging
+failed attempts.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>fitting_results</strong> (<em>list of dict</em>) – <p>List of fitting result dictionaries with structure:
+- ‘function’ : str</p>
+<blockquote>
+<div><p>Function identifier (e.g., ‘polynomial_degree_2’)</p>
+</div></blockquote>
+<ul class="simple">
+<li><dl class="simple">
+<dt>’metrics’<span class="classifier">dict or None</span></dt><dd><p>Quality metrics (present if successful):
+- ‘score’: float - Composite score balancing accuracy/complexity
+- ‘mse’: float - Mean squared error</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>’success’<span class="classifier">bool</span></dt><dd><p>Fit success indicator</p>
+</dd>
+</dl>
+</li>
+<li><p>Additional keys may exist but are not logged here</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>Output Formatting:
+- Polynomial functions: Displayed as ‘Polynomial Degree N’
+- Other functions: Converted to Title Case (e.g., ‘_exponential’ -&gt; ‘Exponential’)
+- Scientific notation: Metrics shown with 2 decimal places (e.g., 1.23e-04)
+- Failed fits: Display ‘Failed’ and use warning level logging</p>
+<p>Logging Levels:
+- INFO: Successfully fitted functions with metrics
+- WARNING: Failed fitting attempts</p>
+<p>Display Order:
+- Results are logged in the order they appear in the input list</p>
+<p class="rubric">Examples</p>
+<dl class="simple">
+<dt>Typical log output:</dt><dd><p>INFO: Fitting Results Summary:
+INFO: Polynomial Degree 2: score = 1.23e-01, mse = 5.67e-03
+WARNING: Exponential: Fitting Failed</p>
+</dd>
+</dl>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<dl class="simple">
+<dt><a class="reference internal" href="#Calibration_EBT3.CurveFitter.polynomial_fit" title="Calibration_EBT3.CurveFitter.polynomial_fit"><code class="xref py py-obj docutils literal notranslate"><span class="pre">polynomial_fit</span></code></a></dt><dd><p>Generates the fitting results logged by this method</p>
+</dd>
+<dt><a class="reference internal" href="#Calibration_EBT3.CurveFitter.calculate_non_linear_fit" title="Calibration_EBT3.CurveFitter.calculate_non_linear_fit"><code class="xref py py-obj docutils literal notranslate"><span class="pre">calculate_non_linear_fit</span></code></a></dt><dd><p>Generates the fitting results for non-linear function</p>
+</dd>
+</dl>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="Calibration_EBT3.CurveFitter.polynomial_fit">
+<span class="sig-name descname"><span class="pre">polynomial_fit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">ProcessingMode.PV</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_degree</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">4</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#Calibration_EBT3.CurveFitter.polynomial_fit" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate the best polynomial fit for a given dataset.</p>
+<p>Fits polynomials of varying degrees to the input data with automatic degree
+optimization and numerical stability measures. The function performs data validation,
+normalization, and handles various edge cases.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<em>array-like</em>) – Independent variable values (e.g., measurement values).
+Must contain at least 2 distinct points for fitting.</p></li>
+<li><p><strong>y</strong> (<em>array-like</em>) – Dependent variable values (e.g., dose values).
+Must have the same length as x.</p></li>
+<li><p><strong>mode</strong> (<a class="reference internal" href="#Calibration_EBT3.ProcessingMode" title="Calibration_EBT3.ProcessingMode"><em>ProcessingMode</em></a><em>, </em><em>default=ProcessingMode.PV</em>) – Processing mode for x values before fitting. Options:
+- PV: Uses raw values
+- OD: Applies optical density transformation
+- NET_OD: Applies net optical density transformation</p></li>
+<li><p><strong>max_degree</strong> (<em>int</em><em>, </em><em>default=4</em>) – Maximum polynomial degree to attempt. The actual maximum degree used
+may be lower based on the number of data points (n_points//2).
+Values above 4 trigger a warning about potential overfitting.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>List of fitting results for each polynomial degree attempted.
+Each dictionary contains:
+- ‘function’ : str
+Name of the fit (e.g., ‘polynomial_degree_2’)
+- ‘metrics’ : dict
+Fit quality metrics including:
+- ‘mse’: Mean squared error
+- ‘score’: Composite score considering complexity
+- ‘polynomial’ : numpy.poly1d
+Fitted polynomial function
+- ‘coefficients’ : array
+Polynomial coefficients in descending order
+- ‘degree’ : int
+Polynomial degree
+- ‘success’ : bool
+Whether the fit succeeded
+- ‘error_message’ : str, optional
+Present only if fit failed</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list of dict</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>Fitting Process:
+1. Data validation using _validate_data
+2. X-value processing according to specified mode
+3. Edge case handling (constant x or y values)
+4. Data normalization for numerical stability
+5. Degree limitation based on sample size
+6. Polynomial fitting with coefficient conversion
+7. Metrics calculation for each successful fit</p>
+<dl class="simple">
+<dt>Numerical Stability:</dt><dd><ul class="simple">
+<li><p>Input data is normalized using mean and standard deviation</p></li>
+<li><p>Coefficients are converted back to original scale</p></li>
+<li><p>Polynomial evaluations use normalized x values internally</p></li>
+</ul>
+</dd>
+<dt>Warnings are generated when:</dt><dd><ul class="simple">
+<li><p>max_degree &gt; 4 (overfitting risk)</p></li>
+<li><p>max_degree is reduced due to sample size</p></li>
+</ul>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="c1"># Example with quadratic data and best fit selection</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Generate sample data (quadratic function with noise)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">y</span> <span class="o">=</span> <span class="mi">2</span><span class="o">*</span><span class="n">x</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Fit polynomials of different degrees</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">fitting_results</span> <span class="o">=</span> <span class="n">polynomial_fit</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">max_degree</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Recommended: Use select_best_fit to choose optimal model</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">best_func</span><span class="p">,</span> <span class="n">best_coeff</span><span class="p">,</span> <span class="n">best_score</span><span class="p">,</span> <span class="n">all_results</span> <span class="o">=</span> <span class="n">select_best_fit</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="n">fitting_results</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">selection_metric</span><span class="o">=</span><span class="s1">&#39;score&#39;</span>  <span class="c1"># &#39;score&#39; metric recommended for polynomials</span>
+<span class="gp">... </span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># The selected model is typically the one that best balances</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># accuracy and complexity. In this case, it should select</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># degree 2 as it matches the true underlying function.</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Selected polynomial degree: </span><span class="si">{</span><span class="n">best_func</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;_&#39;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="go">Selected polynomial degree: 2</span>
+</pre></div>
+</div>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="c1"># Not Recommended: Manual selection using only MSE</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># This might lead to overfitting</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">worst_fit</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">fitting_results</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">r</span><span class="p">:</span> <span class="n">r</span><span class="p">[</span><span class="s1">&#39;metrics&#39;</span><span class="p">][</span><span class="s1">&#39;mse&#39;</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Degree selected by MSE only: </span><span class="si">{</span><span class="n">worst_fit</span><span class="p">[</span><span class="s1">&#39;degree&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="go">Degree selected by MSE only: 4  # Often overfits</span>
+</pre></div>
+</div>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="c1"># Handling constant y values</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">y_const</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full_like</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="mf">5.0</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">results</span> <span class="o">=</span> <span class="n">polynomial_fit</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y_const</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">results</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;degree&#39;</span><span class="p">])</span>  <span class="c1"># Returns degree 0</span>
+<span class="go">0</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ValueError</strong> – </p></li>
+<li><p><strong>- When number of points is insufficient for fitting</strong> – </p></li>
+<li><p><strong>- When all x values are constant</strong> – </p></li>
+<li><p><strong>- When data validation fails</strong> – </p></li>
+</ul>
+</dd>
+</dl>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<dl class="simple">
+<dt><a class="reference internal" href="#Calibration_EBT3.CurveFitter.select_best_fit" title="Calibration_EBT3.CurveFitter.select_best_fit"><code class="xref py py-obj docutils literal notranslate"><span class="pre">select_best_fit</span></code></a></dt><dd><p>Recommended function for selecting optimal polynomial degree</p>
+</dd>
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">numpy.polyfit</span></code></dt><dd><p>Used internally for polynomial fitting</p>
+</dd>
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">_validate_data</span></code></dt><dd><p>Data validation function</p>
+</dd>
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">_process_values</span></code></dt><dd><p>Value processing function</p>
+</dd>
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">_calculate_metrics</span></code></dt><dd><p>Metrics calculation function</p>
+</dd>
+</dl>
+</div>
+<blockquote>
+<div><p>Polynomial fitting approximates the relationship between independent and dependent variables
+by modeling the data as a polynomial function. This method uses the least squares approach
+to minimize the sum of squared differences between observed data and the polynomial model.
+The choice of polynomial degree is critical: lower degrees may underfit the data, while
+higher degrees risk overfitting. To address numerical instability, the function normalizes
+the data, ensuring that the computations remain stable, especially when working with
+high-degree polynomials or large magnitude values.</p>
+</div></blockquote>
+<blockquote>
+<div><ol class="arabic simple">
+<li><p>Wikipedia contributors, “Polynomial Regression,” <em>Wikipedia, The Free Encyclopedia</em>,
+<a class="reference external" href="https://en.wikipedia.org/wiki/Polynomial_regression">https://en.wikipedia.org/wiki/Polynomial_regression</a>.</p></li>
+<li><p>NumPy Documentation, “numpy.polyfit”, <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.polyfit.html">https://numpy.org/doc/stable/reference/generated/numpy.polyfit.html</a>.</p></li>
+</ol>
+</div></blockquote>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="Calibration_EBT3.CurveFitter.select_best_fit">
+<span class="sig-name descname"><span class="pre">select_best_fit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fitting_results</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">selection_metric</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'score'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#Calibration_EBT3.CurveFitter.select_best_fit" title="Permalink to this definition">¶</a></dt>
+<dd><p>Selects the best fitting function from a list of candidate fits
+based on specified metrics.</p>
+<p>The function filters successful fits and chooses the one with the lowest
+metric value.
+The ‘score’ metric is particularly recommended for polynomial fits as it effectively
+balances accuracy with model complexity, helping prevent overfitting. It penalizes
+higher-degree polynomials when they don’t provide significant improvements in fit quality.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>fitting_results</strong> (<em>list of dict</em>) – <p>List of dictionaries containing fitting results. Each dictionary must contain:
+- ‘success’ : bool</p>
+<blockquote>
+<div><p>Indicates if the fit was successful</p>
+</div></blockquote>
+<ul>
+<li><dl class="simple">
+<dt>’function’<span class="classifier">callable</span></dt><dd><p>The fitted function</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>’coefficients’<span class="classifier">array-like</span></dt><dd><p>The fitted parameters</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>’metrics’<span class="classifier">dict</span></dt><dd><dl class="simple">
+<dt>Dictionary of metric values including:</dt><dd><ul>
+<li><p>’score’ : float</p></li>
+<li><p>’mse’ : float</p></li>
+<li><p>Other available metrics</p></li>
+</ul>
+</dd>
+</dl>
+</dd>
+</dl>
+</li>
+</ul>
+</p></li>
+<li><p><strong>selection_metric</strong> (<em>str</em><em>, </em><em>default='score'</em>) – The metric to use for selecting the best fit. Must be a key in the metrics
+dictionary. Lower values are considered better.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>function</strong> (<em>callable or None</em>) – The best fitting function. None if no successful fits found.</p></li>
+<li><p><strong>coefficients</strong> (<em>array-like or None</em>) – Parameters of the best fit. None if no successful fits found.</p></li>
+<li><p><strong>best_score</strong> (<em>float or None</em>) – Value of the selection metric for the best fit. None if no successful fits found.</p></li>
+<li><p><strong>fitting_results</strong> (<em>list of dict</em>) – The original fitting results list, unchanged.</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>Selection Process:
+1. Filters out unsuccessful fits
+2. Compares remaining fits using the specified metric
+3. Selects the fit with the lowest metric value
+4. Logs debug information about the selected fit</p>
+<p>The function handles several edge cases:
+- Empty fitting_results list
+- No successful fits
+- Missing metric values
+- Errors during comparison</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>WARNING level: When no successful fits are found</p></li>
+<li><p>ERROR level: When errors occur during selection</p></li>
+<li><p>DEBUG level: Selected function details and metric values</p></li>
+</ul>
+</div></blockquote>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="c1"># Example with polynomial fits of different degrees</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># True function: f(x) = 2x² + 1</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">y</span> <span class="o">=</span> <span class="mi">2</span><span class="o">*</span><span class="n">x</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>  <span class="c1"># Add some noise</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Quadratic fit (correct degree)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">quad_fit</span> <span class="o">=</span> <span class="p">{</span>
+<span class="gp">... </span>    <span class="s1">&#39;success&#39;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="s1">&#39;function&#39;</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">c</span><span class="p">:</span> <span class="n">a</span><span class="o">*</span><span class="n">x</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">b</span><span class="o">*</span><span class="n">x</span> <span class="o">+</span> <span class="n">c</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="s1">&#39;coefficients&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mf">1.98</span><span class="p">,</span> <span class="mf">0.05</span><span class="p">,</span> <span class="mf">1.02</span><span class="p">],</span>  <span class="c1"># Close to true values</span>
+<span class="gp">... </span>    <span class="s1">&#39;metrics&#39;</span><span class="p">:</span> <span class="p">{</span>
+<span class="gp">... </span>        <span class="s1">&#39;score&#39;</span><span class="p">:</span> <span class="mf">0.015</span><span class="p">,</span>  <span class="c1"># Better score</span>
+<span class="gp">... </span>        <span class="s1">&#39;mse&#39;</span><span class="p">:</span> <span class="mf">0.01</span>
+<span class="gp">... </span>    <span class="p">}</span>
+<span class="gp">... </span><span class="p">}</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Cubic fit (overfitting)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">cubic_fit</span> <span class="o">=</span> <span class="p">{</span>
+<span class="gp">... </span>    <span class="s1">&#39;success&#39;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="s1">&#39;function&#39;</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">d</span><span class="p">:</span> <span class="n">a</span><span class="o">*</span><span class="n">x</span><span class="o">**</span><span class="mi">3</span> <span class="o">+</span> <span class="n">b</span><span class="o">*</span><span class="n">x</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">c</span><span class="o">*</span><span class="n">x</span> <span class="o">+</span> <span class="n">d</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="s1">&#39;coefficients&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.1</span><span class="p">,</span> <span class="mf">1.85</span><span class="p">,</span> <span class="mf">0.15</span><span class="p">,</span> <span class="mf">0.98</span><span class="p">],</span>
+<span class="gp">... </span>    <span class="s1">&#39;metrics&#39;</span><span class="p">:</span> <span class="p">{</span>
+<span class="gp">... </span>        <span class="s1">&#39;score&#39;</span><span class="p">:</span> <span class="mf">0.028</span><span class="p">,</span>  <span class="c1"># Worse score due to complexity penalty</span>
+<span class="gp">... </span>        <span class="s1">&#39;mse&#39;</span><span class="p">:</span> <span class="mf">0.009</span>    <span class="c1"># Slightly better MSE but overfitting</span>
+<span class="gp">... </span>    <span class="p">}</span>
+<span class="gp">... </span><span class="p">}</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">fits</span> <span class="o">=</span> <span class="p">[</span><span class="n">quad_fit</span><span class="p">,</span> <span class="n">cubic_fit</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">func</span><span class="p">,</span> <span class="n">coef</span><span class="p">,</span> <span class="n">score</span><span class="p">,</span> <span class="n">results</span> <span class="o">=</span> <span class="n">select_best_fit</span><span class="p">(</span><span class="n">fits</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Best score: </span><span class="si">{</span><span class="n">score</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>  <span class="c1"># Will select quadratic fit</span>
+<span class="go">Best score: 0.015</span>
+</pre></div>
+</div>
+<p>In this example, although the cubic fit has a slightly better MSE, the quadratic
+fit is correctly selected because:
+1. It has the right complexity for the true underlying function
+2. The score metric penalizes the unnecessary complexity of the cubic fit
+3. The coefficient ratio is better (closer to true function parameters)</p>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<dl class="simple">
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">calculate_metrics</span></code></dt><dd><p>Function used to generate the metrics used in selection</p>
+</dd>
+</dl>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>Logs errors but does not raise exceptions. Returns None values on failure.</strong> – </p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="Calibration_EBT3.FitPlotter">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">Calibration_EBT3.</span></span><span class="sig-name descname"><span class="pre">FitPlotter</span></span><a class="headerlink" href="#Calibration_EBT3.FitPlotter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#Calibration_EBT3.Calibration_EBT3.CurveFitter" title="Calibration_EBT3.Calibration_EBT3.CurveFitter"><code class="xref py py-class docutils literal notranslate"><span class="pre">CurveFitter</span></code></a></p>
+<dl class="py class">
+<dt class="sig sig-object py" id="Calibration_EBT3.FitPlotter.PlotType">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">PlotType</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#Calibration_EBT3.FitPlotter.PlotType" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Enum</span></code></p>
+<p>Enumeration of available plot types for visualization.</p>
+<p>This enum defines different types of plots that can be generated
+for visualizing curve fitting results.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ALL</strong> (<em>str</em>) – Generates all available plot types at once.</p></li>
+<li><p><strong>POLYNOMIAL</strong> (<em>str</em>) – Plots only polynomial fitting results.</p></li>
+<li><p><strong>FUNCTION</strong> (<em>str</em>) – Plots only function-based fitting results.</p></li>
+<li><p><strong>BEST_FIT</strong> (<em>str</em>) – Plots only the best fitting curve based on error metrics.</p></li>
+</ul>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">plot_type</span> <span class="o">=</span> <span class="n">PlotType</span><span class="o">.</span><span class="n">ALL</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">plot_type</span><span class="p">)</span>
+<span class="go">PlotType.ALL</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">plot_type</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+<span class="go">&#39;all&#39;</span>
+</pre></div>
+</div>
+<p class="rubric">Notes</p>
+<ul class="simple">
+<li><p>ALL generates a comprehensive visualization with all fitting attempts</p></li>
+<li><p>POLYNOMIAL is useful when focusing on polynomial regression analysis</p></li>
+<li><p>FUNCTION shows results from predefined fitting functions</p></li>
+<li><p>BEST_FIT displays only the optimal fitting result</p></li>
+</ul>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="Calibration_EBT3.FitPlotter.PlotType.ALL">
+<span class="sig-name descname"><span class="pre">ALL</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'all'</span></em><a class="headerlink" href="#Calibration_EBT3.FitPlotter.PlotType.ALL" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="Calibration_EBT3.FitPlotter.PlotType.BEST_FIT">
+<span class="sig-name descname"><span class="pre">BEST_FIT</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'best</span> <span class="pre">fit'</span></em><a class="headerlink" href="#Calibration_EBT3.FitPlotter.PlotType.BEST_FIT" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="Calibration_EBT3.FitPlotter.PlotType.FUNCTION">
+<span class="sig-name descname"><span class="pre">FUNCTION</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'function'</span></em><a class="headerlink" href="#Calibration_EBT3.FitPlotter.PlotType.FUNCTION" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="Calibration_EBT3.FitPlotter.PlotType.POLYNOMIAL">
+<span class="sig-name descname"><span class="pre">POLYNOMIAL</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'polynomial'</span></em><a class="headerlink" href="#Calibration_EBT3.FitPlotter.PlotType.POLYNOMIAL" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="Calibration_EBT3.FitPlotter.plot_fits">
+<span class="sig-name descname"><span class="pre">plot_fits</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x_data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">title</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'Fits'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">plot_type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">PlotType.ALL</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">function_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">ProcessingMode.PV</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#Calibration_EBT3.FitPlotter.plot_fits" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generate plots for various curve fitting results based on the specified plot type.</p>
+<p>This function coordinates different types of curve fitting and plotting operations. It can generate
+plots for all fits, polynomial fits only, a specific function fit, or the best fit. The function
+performs both non-linear and polynomial fitting before creating the requested plots.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>(</strong><strong>numpy.ndarray</strong><strong>)</strong> (<em>y_data</em>) – </p></li>
+<li><p><strong>(</strong><strong>numpy.ndarray</strong><strong>)</strong> – </p></li>
+<li><p><strong>(</strong><strong>str</strong> (<em>function_name</em>) – </p></li>
+<li><p><strong>optional</strong><strong>)</strong> (<em>Processing mode for x-values. Defaults to ProcessingMode.PV</em>) – </p></li>
+<li><p><strong>(</strong><strong>PlotType</strong> (<em>plot_type</em>) – Available options:
+- PlotType.ALL: Plot all available fits
+- PlotType.POLYNOMIAL: Plot only polynomial fits
+- PlotType.FUNCTION: Plot a specific function fit
+- PlotType.BEST_FIT: Plot only the best fit</p></li>
+<li><p><strong>optional</strong><strong>)</strong> – Available options:
+- PlotType.ALL: Plot all available fits
+- PlotType.POLYNOMIAL: Plot only polynomial fits
+- PlotType.FUNCTION: Plot a specific function fit
+- PlotType.BEST_FIT: Plot only the best fit</p></li>
+<li><p><strong>(</strong><strong>str</strong> – Required if plot_type is PlotType.FUNCTION. Defaults to None</p></li>
+<li><p><strong>optional</strong><strong>)</strong> – Required if plot_type is PlotType.FUNCTION. Defaults to None</p></li>
+<li><p><strong>(</strong><strong>ProcessingMode</strong> (<em>mode</em>) – Available options:
+- ProcessingMode.PV: Process as pixel values
+- ProcessingMode.OD: Process as optical density
+- ProcessingMode.netOD: Process as net optical density</p></li>
+<li><p><strong>optional</strong><strong>)</strong> – Available options:
+- ProcessingMode.PV: Process as pixel values
+- ProcessingMode.OD: Process as optical density
+- ProcessingMode.netOD: Process as net optical density</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>None</strong></p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Displays the requested plots</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>Exception</strong> – If there’s an error processing x values, the error will be caught and printed:</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<ul class="simple">
+<li><p>Requires calculate_non_linear_fit and polynomial_fit methods to be available through inheritance</p></li>
+<li><dl class="simple">
+<dt>Will print error messages and return early if:</dt><dd><ul>
+<li><p>No valid fitting results are available</p></li>
+<li><p>Function name is not provided when plot_type is FUNCTION</p></li>
+<li><p>Error occurs during x value processing</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="Calibration_EBT3.PlotType">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">Calibration_EBT3.</span></span><span class="sig-name descname"><span class="pre">PlotType</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#Calibration_EBT3.PlotType" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Enum</span></code></p>
+<p>Enumeration of available plot types for visualization.</p>
+<p>This enum defines different types of plots that can be generated
+for visualizing curve fitting results.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ALL</strong> (<em>str</em>) – Generates all available plot types at once.</p></li>
+<li><p><strong>POLYNOMIAL</strong> (<em>str</em>) – Plots only polynomial fitting results.</p></li>
+<li><p><strong>FUNCTION</strong> (<em>str</em>) – Plots only function-based fitting results.</p></li>
+<li><p><strong>BEST_FIT</strong> (<em>str</em>) – Plots only the best fitting curve based on error metrics.</p></li>
+</ul>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">plot_type</span> <span class="o">=</span> <span class="n">PlotType</span><span class="o">.</span><span class="n">ALL</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">plot_type</span><span class="p">)</span>
+<span class="go">PlotType.ALL</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">plot_type</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+<span class="go">&#39;all&#39;</span>
+</pre></div>
+</div>
+<p class="rubric">Notes</p>
+<ul class="simple">
+<li><p>ALL generates a comprehensive visualization with all fitting attempts</p></li>
+<li><p>POLYNOMIAL is useful when focusing on polynomial regression analysis</p></li>
+<li><p>FUNCTION shows results from predefined fitting functions</p></li>
+<li><p>BEST_FIT displays only the optimal fitting result</p></li>
+</ul>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="Calibration_EBT3.PlotType.ALL">
+<span class="sig-name descname"><span class="pre">ALL</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'all'</span></em><a class="headerlink" href="#Calibration_EBT3.PlotType.ALL" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="Calibration_EBT3.PlotType.BEST_FIT">
+<span class="sig-name descname"><span class="pre">BEST_FIT</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'best</span> <span class="pre">fit'</span></em><a class="headerlink" href="#Calibration_EBT3.PlotType.BEST_FIT" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="Calibration_EBT3.PlotType.FUNCTION">
+<span class="sig-name descname"><span class="pre">FUNCTION</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'function'</span></em><a class="headerlink" href="#Calibration_EBT3.PlotType.FUNCTION" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="Calibration_EBT3.PlotType.POLYNOMIAL">
+<span class="sig-name descname"><span class="pre">POLYNOMIAL</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'polynomial'</span></em><a class="headerlink" href="#Calibration_EBT3.PlotType.POLYNOMIAL" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="Calibration_EBT3.ProcessingMode">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">Calibration_EBT3.</span></span><span class="sig-name descname"><span class="pre">ProcessingMode</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#Calibration_EBT3.ProcessingMode" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Enum</span></code></p>
+<p>Enumeration of processing modes for image analysis.</p>
+<p>This enum defines different modes for processing image data, particularly
+in the context of optical and pixel-based measurements.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>PV</strong> (<em>int</em>) – Pixel Values mode. Processes raw pixel intensity values.</p></li>
+<li><p><strong>OD</strong> (<em>int</em>) – Optical Density mode. Converts pixel values to optical density measurements.</p></li>
+<li><p><strong>NET_OD</strong> (<em>int</em>) – Net Optical Density mode. Calculates optical density with background correction.</p></li>
+</ul>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">mode</span> <span class="o">=</span> <span class="n">ProcessingMode</span><span class="o">.</span><span class="n">PV</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">mode</span><span class="p">)</span>
+<span class="go">ProcessingMode.PV</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">mode</span> <span class="o">=</span> <span class="n">ProcessingMode</span><span class="o">.</span><span class="n">OD</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">mode</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+<span class="go">2</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">mode</span> <span class="o">=</span> <span class="n">ProcessingMode</span><span class="o">.</span><span class="n">NET_OD</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">mode</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+<span class="go">NET_OD</span>
+</pre></div>
+</div>
+<p class="rubric">Notes</p>
+<ul class="simple">
+<li><p>PV mode works with raw pixel values and is suitable for basic image analysis</p></li>
+<li><p>OD mode applies logarithmic transformation to calculate optical density</p></li>
+<li><p>NET_OD mode includes background correction in optical density calculations</p></li>
+</ul>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="Calibration_EBT3.ProcessingMode.NET_OD">
+<span class="sig-name descname"><span class="pre">NET_OD</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">3</span></em><a class="headerlink" href="#Calibration_EBT3.ProcessingMode.NET_OD" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="Calibration_EBT3.ProcessingMode.OD">
+<span class="sig-name descname"><span class="pre">OD</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">2</span></em><a class="headerlink" href="#Calibration_EBT3.ProcessingMode.OD" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="Calibration_EBT3.ProcessingMode.PV">
+<span class="sig-name descname"><span class="pre">PV</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1</span></em><a class="headerlink" href="#Calibration_EBT3.ProcessingMode.PV" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../index.html">Calibration_EBT3</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">Calibration_EBT3</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Calibration_EBT3 package</a></li>
+</ul>
+</li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+  <li><a href="modules.html">Calibration_EBT3</a><ul>
+      <li>Previous: <a href="modules.html" title="previous chapter">Calibration_EBT3</a></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2025, Eleonora Cristina Amico.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 5.0.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="../_sources/source/Calibration_EBT3.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>
