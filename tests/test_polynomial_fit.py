@@ -1101,11 +1101,10 @@ class TestPolynomialFitsEdgeCases:
     
     def test_polynomial_fits_standard_cases(self, fitter):
         """Standard test cases for polynomial fitting with predefined scenarios
-        to cover basic functionality without randomness GIVEN specific
-        polynomial functions without noise.
-
-        WHEN polynomial fitting is performed. THEN the fitter should return the
-        correct polynomial degree
+        to cover basic functionality without randomness.
+        GIVEN: specific polynomial functions without noise.
+        WHEN: polynomial fitting is performed.
+        THEN: the fitter should return the correct polynomial degree
         """
         # Test cases with clean, noise-free data
         test_cases = [
@@ -1145,11 +1144,10 @@ class TestPolynomialFitsEdgeCases:
     ])
     def test_polynomial_fits_standard_cases_with_noise(self, fitter, x_min, x_max, n_points, 
                                             coefficients, expected_degree, name):
-        """Parametrized test for polynomial fitting with low-level noise GIVEN
-        polynomial functions with low-level noise.
-
-        WHEN polynomial fitting is performed. THEN the fitter should correctly
-        estimate the polynomial degree within an acceptable range.
+        """Parametrized test for polynomial fitting with low-level noise.
+        GIVEN: polynomial functions with low-level noise.
+        WHEN polynomial fitting is performed.
+        THEN the fitter should correctly estimate the polynomial degree within an acceptable range.
         """
         # Set random seed for reproducibility
         np.random.seed(42)
@@ -1185,9 +1183,9 @@ class TestPolynomialFitsEdgeCases:
     def test_noise_impact_on_degree_selection(self, fitter, true_degree, coeffs, polynomial_type, noise_factor):
         """Parametrized test to examine noise impact on degree selection.
 
-        GIVEN a polynomial function with varying levels of noise. WHEN
-        polynomial fitting is applied. THEN the fitter should correctly
-        estimate the polynomial degree within a reasonable threshold.
+        GIVEN a polynomial function with varying levels of noise.
+        WHEN polynomial fitting is applied. 
+        THEN the fitter should correctly estimate the polynomial degree within a reasonable threshold.
         """
         # Generate x values
         x = np.linspace(0, 1000, 50)
