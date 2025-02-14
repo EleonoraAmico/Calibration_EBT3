@@ -1,0 +1,200 @@
+Metadata-Version: 2.1
+Name: calibration-ebt3
+Version: 0.1
+Summary: A package for EBT3 calibration.
+Home-page: https://github.com/EleonoraAmico/Calibration_EBT3
+Author: Eleonora Cristina Amico
+Author-email: eleonora.c.amico@gmail.com
+Classifier: Programming Language :: Python :: 3.8
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Requires-Python: >=3.8
+Description-Content-Type: text/markdown
+Requires-Dist: numpy==1.24.4
+Requires-Dist: scipy==1.10.1
+Requires-Dist: scikit-learn==1.5.1
+Requires-Dist: pytest==7.4.0
+Requires-Dist: pytest-cov==6.0.0
+Requires-Dist: hypothesis==6.124.0
+Requires-Dist: matplotlib==3.8.4
+
+# CurveFitter: Calibration Library for Gafchromic EBT3 Dosimetry
+## Table of Contents  
+1. [Description](#description)  
+2. [Key Features](#key-features)  
+3. [Installation](#installation)  
+   - [Requirements](#requirements)  
+   - [Installing Dependencies](#installing-dependencies)  
+4. [Basic Usage](#basic-usage)  
+5. [Processing Modes](#processing-modes)  
+6. [Supported Non-Linear Functions](#supported-non-linear-functions)  
+7. [Advanced Methods](#advanced-methods)  
+8. [Multiple Metric Calculation](#multiple-metric-calculation)  
+9. [Testing](#testing)  
+10. [Considerations & Limitations](#known-limitations) 
+
+## Description
+CurveFitter is a Python library designed to calibrate Gafchromic EBT3 radiochromic films used in dosimetry applications. The main challenge in calibrating these films arises from the lack of a well-known calibration function. As such, each batch of films must be individually calibrated.
+
+To address this, CurveFitter provides an automated framework for testing various calibration functions found in the scientific literature. The goal is to identify the calibration function that minimizes the Mean Squared Error (MSE) between the measured and expected dose-response data. By comparing different calibration models, this library helps users find the most accurate calibration for their specific set of data.
+
+The calibration process involves two main variables:
+
+The X-axis represents the pixel values measured from the film.
+The Y-axis represents the corresponding relative dose associated with those pixel values.
+However, because there are different methods to derive the calibration curve, the library also includes tools to process the data in multiple ways. Specifically, it supports methods to calculate the optical density (OD) and net optical density (netOD), as these are widely used in the literature for calibrating Gafchromic films. This flexibility allows the user to choose the appropriate method depending on the dataset and the specific application.
+
+Additionally, a separate class called FitPlotter has been implemented to facilitate the visualization of the calibration results. This class inherits from CurveFitter and generates plots of the fitting functions, providing an intuitive way to visually assess the performance of different calibration models. The FitPlotter class includes the plot_fits method, which allows users to plot the fitting functions based on different plot types, including:
+
+- *ALL*: Displays all fitting functions.
+- *POLYNOMIAL*: Displays only the polynomial fit.
+- *FUNCTION*: Displays a specific function, if provided.
+- *BEST FIT*: Displays the best fitting function selected based on the minimization of MSE. The plotting functionality supports the display of the fitted curves and the data points, making it easier for users to compare and validate their calibration choices.
+
+The library is designed to be flexible and can easily be adapted to different datasets. Its primary purpose is to streamline the calibration process, reducing both manual effort and the risk of errors in the calibration procedure.
+
+## Key Features
+
+- Support for calibration methods using:
+  * Pixel Values (PV)
+  * Optical Density (OD)
+  * Net Optical Density (netOD)
+- Data processing and normalization for both polynomial and non-linear fits
+- Automatic model selection through minimization of multiple metrics (score, MSE and chi- square value)
+- Advanced parameter estimation techniques
+
+## Installation
+
+### Requirements
+- Python 3.8+
+- Required libraries:
+  * numpy
+  * scipy
+  * scikit-learn
+
+### Installing Dependencies
+bash
+pip install -r requirements.txt
+
+## Basic Usage 
+To use the *CurveFitter* library, you can follow these basic steps:
+
+from Calibration_EBT3 import CurveFitter, ProcessingMode
+
+# Initialization
+fitter = CurveFitter()
+
+# Example of non-linear fitting
+x_data = [...]  # Your x data (pixel values)
+y_data = [...]  # Your y data (relative dose)
+
+# Non-linear fit
+results = fitter.calculate_non_linear_fit(x_data, y_data, mode=ProcessingMode.PV, print_results=False)
+
+# Log a formatted summary of all fitting results.
+log_fitting_results(results)
+
+
+# Polynomial fit
+polynomial_results = fitter.polynomial_fit(x_data, y_data, mode=ProcessingMode.PV, xerr=None, max_degree=4)
+
+# Select the best model, i.e. for polynomial_results
+best_function, coefficients, score, all_results = fitter.select_best_fit(polynomial_results, selection_metric='score')
+
+# Create an instance of the FitPlotter class to generate custom plots.
+plot = FitPlotter()
+
+# Example: Plot polynomial fits with a custom title for the red channel calibration.
+plot.plot_fits(
+    x_data_red, y_data_red,
+    title="Calibration Red Channel (Polynomial Fit)",
+    plot_type=PlotType.POLYNOMIAL,
+    mode=ProcessingMode.PV
+)
+
+## Processing Modes
+
+The library supports different processing modes for handling calibration data. The available modes are:
+
+| Mode   | Description |
+|--------|------------|
+| **PV** (Pixel Values) | Uses raw pixel values directly for calibration without conversion. Suitable for simple calibrations where optical density is not required. |
+| **OD** (Optical Density) | Converts pixel values into optical density (OD), which is often used in dosimetry for better correlation with radiation dose. |
+| **NET_OD** (Net Optical Density) | Uses net optical density, calculated as the difference between exposed and unexposed film optical density. This method helps reduce variations due to scanner fluctuations and background noise. |
+
+
+### *Supported Non-Linear Functions* 
+
+*CurveFitter* includes several non-linear fitting functions to perform calibration:
+
+- **Exponential Fit**:
+  - \( f(x) = a \cdot \exp(b \cdot x) + c \)
+  - A simple exponential function to model the relationship between pixel values and relative dose.
+
+- **Combination of Exponentials**:
+  - \( f(x) = a \cdot \exp(b \cdot x) + c \cdot \exp(d \cdot x) \)
+  - A combination of two exponential functions to model more complex relationships between pixel values and dose.
+
+- **Generalized Rational Function**:
+  - \( f(x) = \frac{a + x}{c \cdot x + d} \)
+  - A generalized rational function to provide a flexible model for the dose-response relationship.
+
+- **Logarithmic Function**:
+  - \( \text{result} = \log\left(\frac{x + c}{x + b}\right) - a \)
+  - A logarithmic function that models non-linear relationships by calculating the log of the ratio between two linear terms, with numerical stability adjustments.
+
+### *Advanced Methods* 
+
+In addition to basic fitting, *CurveFitter* offers advanced features to improve calibration accuracy:
+
+- *Initial Guess Generation*: Automatic generation of initial parameter guesses to improve fitting results.
+- *Bayesian Approach for Parameter Selection*: A Bayesian approach to optimize parameter selection.
+
+### **Multiple Metric Calculation**
+
+**CurveFitter** evaluates the fitting results using multiple metrics, with a primary focus on the **Mean Squared Error (MSE)** and a **Score**. The **Score** metric is particularly useful for polynomial fits and is calculated based on several criteria, which provide a more comprehensive evaluation of the fitting quality. The formula for the score is as follows:
+
+1. **Coefficient Ratio**: Measures the ratio of the absolute value of the first coefficient to the mean of the absolute values of the other coefficients. This helps assess the dominance of the first coefficient in the polynomial fitting.
+
+   \[
+   \text{coeff\_ratio} = \frac{\left|\text{coefficients}[0]\right|}{\text{mean}\left(\left|\text{coefficients}[1:]\right|\right)} \quad \text{if} \quad \text{len(coefficients)} > 1 \quad \text{else} \quad \infty
+   \]
+
+   Where:
+   - The numerator is the absolute value of the **first coefficient** (`coefficients[0]`).
+   - The denominator is the **mean of the absolute values** of all remaining coefficients (`coefficients[1:]`).
+   
+   This ratio helps identify if the first coefficient (typically the highest degree term in polynomials) dominates the model.
+
+2. **Complexity Penalty**: A penalty term that increases with the degree of the polynomial and the size of the dataset. This prevents overfitting by discouraging excessively complex models.
+
+   \[
+   \text{complexity\_penalty} = \text{degree} \cdot \log(\text{len}(y_{\text{true}}))
+   \]
+
+3. **Modified Score**: Combines the MSE, complexity penalty, and coefficient ratio to form the final score, which balances goodness of fit with model complexity.
+
+   \[
+   \text{score} = \text{mse} \cdot \left( 1 + \frac{\text{complexity\_penalty}}{\text{len}(y_{\text{true}})} \right) \cdot \left( 1 + \frac{1}{\text{coeff\_ratio}} \right)
+   \]
+
+This metric helps evaluate the fitting process by considering not only the error between the fitted and actual data points (via MSE) but also the complexity of the model and the relative significance of the coefficients. It ensures that the chosen model is both accurate and appropriately complex, preventing overfitting.
+
+
+## Testing
+Tests have been implemented to ensure the reliability and robustness of the library. These tests validate various aspects of the fitting and data processing methods, ensuring consistent and accurate results for different datasets.
+
+## Considerations & Limitations
+
+While *CurveFitter* is a powerful tool, there are some known limitations:
+
+- *Polynomial Fits*:
+  - The maximum polynomial degree is limited to 4 to prevent overfitting.
+  - The recommended metric for evaluating polynomial fits is the *score*, which takes into account both Mean Squared Error (MSE) and the complexity of the function.
+
+- **Non-linear Fits**: 
+
+ - While the Mean Squared Error (MSE) is a widely used metric for evaluating model performance, it does not always guarantee that the selected best-fit function aligns with the expected non-linear behavior. During testing, it was observed that in some cases, the MSE-based selection chose a different function rather than the expected one.  
+
+This suggests that further investigation is needed to determine the most suitable metric for selecting the best model. Users are encouraged to analyze the fitting results carefully and consider additional criteria, such as function interpretability and physical meaning, when choosing the most appropriate calibration function. The provided plotting methods can be useful for visually inspecting the fits and validating model selection.
+

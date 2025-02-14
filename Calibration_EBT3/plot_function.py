@@ -2,69 +2,110 @@
 """
 Created on Thu Jan  9 11:34:55 2025
 
-@author: Ele_p
+@author: Eleonora Cristina Amico
 """
-
+import logging
 import enum
 import numpy as np
 import matplotlib.pyplot as plt
 from Calibration_EBT3 import CurveFitter, ProcessingMode  # Import the parent class
 
 class PlotType(enum.Enum):
+    """
+    
+    Enumeration of available plot types for visualization.
+
+    This enum defines different types of plots that can be generated
+    for visualizing curve fitting results.
+    
+    Parameters
+    ----------
+        ALL : str
+            Generates all available plot types at once.
+        POLYNOMIAL : str
+            Plots only polynomial fitting results.
+        FUNCTION : str
+            Plots only function-based fitting results.
+        BEST_FIT : str
+            Plots only the best fitting curve based on error metrics.
+    
+    Examples
+    --------
+        >>> plot_type = PlotType.ALL
+        >>> print(plot_type)
+        PlotType.ALL
+        >>> print(plot_type.value)
+        'all'
+    
+    Notes
+    -----
+        - ALL generates a comprehensive visualization with all fitting attempts
+        - POLYNOMIAL is useful when focusing on polynomial regression analysis
+        - FUNCTION shows results from predefined fitting functions
+        - BEST_FIT displays only the optimal fitting result
+    
+    """
     ALL = "all"
     POLYNOMIAL = "polynomial"
     FUNCTION = "function"
     BEST_FIT = "best fit"
 
+
 class FitPlotter(CurveFitter):  # Inherit from CurveFitter
     def __init__(self):
         super().__init__()  # Call parent class's __init__
+
         
     def plot_fits(self, x_data, y_data, title="Fits", plot_type=PlotType.ALL, function_name=None, mode=ProcessingMode.PV):
-       
         """
+        
         Generate plots for various curve fitting results based on the specified plot type.
 
         This function coordinates different types of curve fitting and plotting operations. It can generate
         plots for all fits, polynomial fits only, a specific function fit, or the best fit. The function
         performs both non-linear and polynomial fitting before creating the requested plots.
     
-        Args:
+        Parameters
+        ----------
             x_data (numpy.ndarray): Raw x-values for fitting (typically pixel values)
             y_data (numpy.ndarray): Y-values representing dose measurements in Gy
             title (str, optional): Title for the plot(s). Defaults to "Fits"
             plot_type (PlotType, optional): Type of plot to generate. Defaults to PlotType.ALL
-                Available options:
-                - PlotType.ALL: Plot all available fits
-                - PlotType.POLYNOMIAL: Plot only polynomial fits
-                - PlotType.FUNCTION: Plot a specific function fit
-                - PlotType.BEST_FIT: Plot only the best fit
+                                            Available options:
+                                            - PlotType.ALL: Plot all available fits
+                                            - PlotType.POLYNOMIAL: Plot only polynomial fits
+                                            - PlotType.FUNCTION: Plot a specific function fit
+                                            - PlotType.BEST_FIT: Plot only the best fit
             function_name (str, optional): Name of specific function to plot when plot_type is FUNCTION.
-                Required if plot_type is PlotType.FUNCTION. Defaults to None
+                                           Required if plot_type is PlotType.FUNCTION. Defaults to None
             mode (ProcessingMode, optional): Processing mode for x-values. Defaults to ProcessingMode.PV
-                Available options:
-                - ProcessingMode.PV: Process as pixel values
-                - ProcessingMode.OD: Process as optical density
-                - ProcessingMode.netOD: Process as net optical density
+                                             Available options:
+                                            - ProcessingMode.PV: Process as pixel values
+                                            - ProcessingMode.OD: Process as optical density
+                                            - ProcessingMode.netOD: Process as net optical density
     
-        Returns:
+        Returns
+        -------
             None: Displays the requested plots
     
-        Raises:
+        Raises
+        ------
             Exception: If there's an error processing x values, the error will be caught and printed
     
-        Notes:
+        Notes
+        -----
             - Requires calculate_non_linear_fit and polynomial_fit methods to be available through inheritance
             - Will print error messages and return early if:
                 - No valid fitting results are available
                 - Function name is not provided when plot_type is FUNCTION
                 - Error occurs during x value processing
+                
         """
         # Now calculate_best_fit is available through inheritance
         fitting_results = self.calculate_non_linear_fit(x_data, y_data, mode = mode)
-        print(fitting_results)
         fitting_results_poly = self.polynomial_fit(x_data, y_data, mode)
-        best_func, best_popt, best_mse, fitting_results_poly = self.select_best_fit(fitting_results_poly)
+        fitting_results_all = fitting_results + fitting_results_poly
+        best_func, best_popt, best_mse, fitting_results_all = self.select_best_fit(fitting_results_all, selection_metric="mse")
         try:
             x_processed = self._process_values(x_data, y_data, mode)
         except Exception as e:
@@ -88,12 +129,14 @@ class FitPlotter(CurveFitter):  # Inherit from CurveFitter
 
     def _plot_best_fit(self, x_processed, y_data, best_func, best_popt, best_mse, title, mode):
         """
+        
         Plot the best fitting curve among all attempted fits with the original data points.
 
         Creates a matplotlib figure showing the original data points with error bars and the best-fitting 
         curve overlay. Handles both polynomial and function fits with appropriate labeling and metrics.
     
-        Args:
+        Parameters
+        ----------
             x_processed (numpy.ndarray): Processed x-values (pixel values, OD, or netOD)
             y_data (numpy.ndarray): Y-values representing dose measurements in Gy
             best_func (callable or int): Function object for function fits or integer for polynomial fits
@@ -102,16 +145,18 @@ class FitPlotter(CurveFitter):  # Inherit from CurveFitter
             title (str): Title for the plot
             mode (ProcessingMode): Enum indicating the processing mode (PV, OD, or netOD)
     
-        Returns:
+        Returns
+        -------
             None: Displays the plot using plt.show()
     
-        Notes:
+        Notes
+        -----
             Will print "No valid best fit found" if best_func or best_popt is None
+            
         """
         if best_func is None or best_popt is None:
             print("No valid best fit found")
             return
-            
         plt.figure(figsize=(10, 6))
         
         # Plot data points with error bars
@@ -120,7 +165,7 @@ class FitPlotter(CurveFitter):  # Inherit from CurveFitter
         
         x_fit = np.linspace(min(x_processed), max(x_processed), 100)
         
-        if isinstance(best_func, int):
+        if best_func.startswith('polynomial_degree_'):
             # Polynomial case
             coefficients = best_popt
             p = np.poly1d(coefficients)
@@ -130,8 +175,9 @@ class FitPlotter(CurveFitter):  # Inherit from CurveFitter
                     label=f"Best Fit: Polynomial Degree {displayed_name} (MSE: {best_mse:.2e})")
         else:
             # Function case
-            y_fit = best_func(x_fit, *best_popt)
-            func_name = best_func.__name__.lstrip('_')
+            fit_function = self.fitting_functions[best_func]
+            y_fit = fit_function(x_fit, *best_popt)
+            func_name = best_func.lstrip('_')
             formatted_name = ' '.join(word.capitalize() for word in func_name.split('_'))
             plt.plot(x_fit, y_fit, '-', 
                     label=f'Best Fit: {formatted_name} (MSE: {best_mse:.2e})')
@@ -149,40 +195,48 @@ class FitPlotter(CurveFitter):  # Inherit from CurveFitter
 
     def _plot_all_fits(self, x_data, y_data, fitting_results, title, mode):
         """
+        
         Plot all available fits including both polynomials and functions.
 
         Generates individual plots for each fit in the fitting results, showing original data
         points and fitted curves.
     
-        Args:
+        Parameters
+        ----------
             x_data (numpy.ndarray): Raw x-values
             y_data (numpy.ndarray): Y-values representing dose measurements in Gy
             fitting_results (list): List of dictionaries containing fitting results
             title (str): Base title for all plots
             mode (ProcessingMode): Enum indicating the processing mode
     
-        Returns:
+        Returns
+        -------
             None: Displays multiple plots
+            
         """
         for i, result in enumerate(fitting_results):
             self._create_plot(x_data, y_data, result, title, mode)
             
     def _plot_polynomial_fits(self, x_data, y_data, fitting_results_poly, title, mode):
         """
+        
         Plot only polynomial fits.
 
         Filters fitting results to include only polynomial fits and generates individual plots
         for each polynomial degree.
     
-        Args:
+        Parameters
+        ----------
             x_data (numpy.ndarray): Raw x-values
             y_data (numpy.ndarray): Y-values representing dose measurements in Gy
             fitting_results_poly (list): List of dictionaries containing polynomial fitting results
             title (str): Base title for all plots
             mode (ProcessingMode): Enum indicating the processing mode
     
-        Returns:
+        Returns
+        -------
             None: Displays multiple plots
+            
         """
         poly_results = [result for result in fitting_results_poly if 'coefficients' in result]
         for result in poly_results:
@@ -190,23 +244,28 @@ class FitPlotter(CurveFitter):  # Inherit from CurveFitter
             
     def _plot_specific_function(self, x_data, y_data, fitting_results, function_name, title, mode):
         """
+        
         Plot a specific named function fit.
 
         Searches for and plots only the fits matching the specified function name.
     
-        Args:
+        Parameters
+        ----------
             x_data (numpy.ndarray): Raw x-values
             y_data (numpy.ndarray): Y-values representing dose measurements in Gy
             fitting_results (list): List of dictionaries containing all fitting results
             function_name (str): Name of the function to plot
             title (str): Base title for all plots
             mode (ProcessingMode): Enum indicating the processing mode
-    
-        Returns:
+        
+        Returns
+        -------
             None: Displays plots for matching functions
-    
-        Notes:
+        
+        Notes
+        -----
             Prints a message if no matching function is found
+            
         """
         func_results = [result for result in fitting_results 
                        if 'function' in result and result['function'] == function_name]
@@ -218,24 +277,29 @@ class FitPlotter(CurveFitter):  # Inherit from CurveFitter
             
     def _create_plot(self, x_data, y_data, result, title, mode):
         """
+        
         Create an individual plot for a single fit result.
 
-       Handles the creation of a single plot with data points, error bars, and fitted curve.
-       Supports both polynomial and function fits.
+        Handles the creation of a single plot with data points, error bars, and fitted curve.
+        Supports both polynomial and function fits.
     
-       Args:
-           x_data (numpy.ndarray): Raw x-values
-           y_data (numpy.ndarray): Y-values representing dose measurements in Gy
-           result (dict): Dictionary containing fitting results and parameters
-           title (str): Plot title
-           mode (ProcessingMode): Enum indicating the processing mode
+        Parameters
+        ----------
+            x_data (numpy.ndarray): Raw x-values
+            y_data (numpy.ndarray): Y-values representing dose measurements in Gy
+            result (dict): Dictionary containing fitting results and parameters
+            title (str): Plot title
+            mode (ProcessingMode): Enum indicating the processing mode
     
-       Returns:
-           None: Displays the plot
+        Returns
+        -------
+            None: Displays the plot
     
-       Raises:
-           Exception: Catches and prints any exceptions during value processing or plot creation
-       """
+        Raises
+        ------
+            Exception: Catches and prints any exceptions during value processing or plot creation
+       
+        """
 
         try:
             x_processed = self._process_values(x_data, y_data, mode)
@@ -266,18 +330,22 @@ class FitPlotter(CurveFitter):  # Inherit from CurveFitter
             
     def _add_polynomial_fit(self, x_fit, result, title):
         """
+        
         Add a polynomial fit curve to an existing plot.
 
         Calculates and plots the polynomial fit curve using the provided coefficients,
         including degree and MSE in the label.
     
-        Args:
+        Parameters
+        ----------
             x_fit (numpy.ndarray): X-values for the fit curve
             result (dict): Dictionary containing polynomial fitting results
             title (str): Plot title
     
-        Returns:
+        Returns
+        -------
             None: Modifies existing plot
+        
         """
         coefficients = result['coefficients']
         p = np.poly1d(coefficients)
@@ -291,21 +359,26 @@ class FitPlotter(CurveFitter):  # Inherit from CurveFitter
         
     def _add_function_fit(self, x_fit, result, title):
         """
+        
         Add a function fit curve to an existing plot.
 
         Calculates and plots the function fit curve using the provided function and 
         optimized parameters, including function name and MSE in the label.
      
-        Args:
+        Parameters
+        ----------
             x_fit (numpy.ndarray): X-values for the fit curve
             result (dict): Dictionary containing function fitting results
             title (str): Plot title
      
-        Returns:
+        Returns
+        -------
             None: Modifies existing plot
      
-        Notes:
+        Notes
+        -----
             Requires function to exist in self.fitting_functions
+        
         """
         popt = result['coefficients']
         func_name = result['function']
