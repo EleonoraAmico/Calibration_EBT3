@@ -2,20 +2,18 @@
 ## Table of Contents  
 1. [Description](#description)  
 2. [Key Features](#key-features)  
-3. [Installation](#installation)  
-   - [Requirements](#requirements)  
-   - [Installing Dependencies](#installing-dependencies)  
-4. [Tutorial](#tutorial)  
-5. [Processing Modes](#processing-modes)  
-6. [Supported Non-Linear Functions](#supported-non-linear-functions)  
-7. [Advanced Methods](#advanced-methods)  
-8. [Multiple Metric Calculation](#multiple-metric-calculation)  
-9. [Testing](#testing) 
+3. [Installation](#installation)
+4. [Documentation](#documentation) 
+5. [Tutorial](#tutorial)  
+6. [Processing Modes](#processing-modes)  
+7. [Supported Non-Linear Functions](#supported-non-linear-functions)  
+8. [Advanced Methods](#advanced-methods)  
+9. [Multiple Metric Calculation](#multiple-metric-calculation)  
+10. [Testing](#testing) 
 11. [Considerations and Limitations](#considerations-and-limitations)
-12. [Documentation](#documentation)
-13. [Project overview](#project-overview)
+12. [Project overview](#project-overview)
 
-## Description
+# Description
 CurveFitter is a Python library designed to calibrate Gafchromic EBT3 radiochromic films used in dosimetry applications. The main challenge in calibrating these films arises from the lack of a well-known calibration function. In addition, each batch of films must be individually calibrated.
 
 To address this, CurveFitter provides an automated framework for testing various calibration functions found in the scientific literature. The goal is to identify the calibration function that minimizes the Mean Squared Error (MSE) between the measured and expected dose-response data. By comparing different calibration models, this library helps users find the most accurate calibration for their specific set of data.
@@ -47,7 +45,7 @@ The library is designed to be flexible and can easily be adapted to different da
 - Automatic model selection through minimization of multiple metrics (score and MSE)
 - Advanced parameter estimation techniques
 
-## Installation
+# Installation
 
 ### Requirements
 - Python 3.8+
@@ -60,9 +58,44 @@ The library is designed to be flexible and can easily be adapted to different da
    * hypothesis==6.124.0
    * matplotlib==3.8.4
 
-### Installing Dependencies
+### Cloning the Repository
+To clone this repository to your local machine, use the following command:
+
+`bash
+git clone https://github.com/EleonoraAmico/Calibration_EBT3.git`  
+`cd Calibration_EBT3`
+
+### Installation
+To install the project and all its necessary dependencies, run the following command:
+
+`bash
+pip install .`
+
+If you want to install additional dependencies for testing or documentation purposes, you can use one of the following commands:
+
+For testing:
+
+`bash
+pip install .[dev]`
+
+For documentation dependencies ( Sphinx):
+
+`bash
+pip install .[docs]`
+
+### Optional: Using requirements.txt
+If you prefer, you can also install dependencies via a requirements.txt file. To do this, run:
+
 `bash pip install -r requirements.txt`
 
+# Documentation
+
+The full documentation for this project is available in the `docs` folder. You can view it by opening the `index.html` file in your browser.
+
+If you want to build the documentation locally, you can use Sphinx. Simply navigate to the `docs` folder and run:
+
+`bash
+sphinx-build -b html . _build`  
 
 # Tutorial
 To get started with the CurveFitter package, check out the tutorial.py file located in the Tutorial folder for a complete usage example.
@@ -88,7 +121,7 @@ The library supports different processing modes for handling calibration data. T
 | **NET_OD** (Net Optical Density) | Uses net optical density, calculated as the difference between exposed and unexposed film optical density. This method helps reduce variations due to scanner fluctuations and background noise. |
 
 
-### *Supported Non-Linear Functions* 
+# Supported Non-Linear Functions 
 
 *CurveFitter* includes several non-linear fitting functions to perform calibration:
 
@@ -108,7 +141,7 @@ The library supports different processing modes for handling calibration data. T
   - $f(x) = \frac{\ln\left(\frac{x + b}{b}\right)}{a}$
   - A logarithmic function that models non-linear relationships by calculating the log of the ratio between two linear terms, with numerical stability adjustments.
 
-### **Advanced Methods** 
+# Advanced Methods 
 
 Generating a good initial guess is critical for the success of non-linear optimization algorithms like those used in curve fitting.In addition to basic fitting, *CurveFitter* offers advanced features to improve calibration accuracy:
 
@@ -123,7 +156,7 @@ Generating a good initial guess is critical for the success of non-linear optimi
          
         The sampling strategy used here is a form of Approximate Bayesian Computation (ABC), where the best parameter set is chosen by minimizing the distance between simulated and observed data.
 
-### **Multiple Metric Calculation**
+# Multiple Metric Calculation
 
 **CurveFitter** evaluates the fitting results using multiple metrics, with a primary focus on the **Mean Squared Error (MSE)** and a **Score**. The **Score** metric is particularly useful for polynomial fits and is calculated based on several criteria, which provide a more comprehensive evaluation of the fitting quality. The formula for the score is as follows:
 
@@ -148,11 +181,11 @@ Generating a good initial guess is critical for the success of non-linear optimi
 This metric helps evaluate the fitting process by considering not only the error between the fitted and actual data points (via MSE) but also the complexity of the model and the relative significance of the coefficients. It ensures that the chosen model is both accurate and appropriately complex, preventing overfitting.
 
 
-## Testing
+# Testing
 Tests have been implemented to ensure the reliability and robustness of the library. These tests validate various aspects of the fitting and data processing methods, ensuring consistent and accurate results for different datasets.
 The tests are located in the `tests` folder and can be executed using [pytest](https://docs.pytest.org/).
 
-## Considerations and Limitations
+# Considerations and Limitations
 
 While *CurveFitter* is a powerful tool, there are some known limitations:
 
@@ -165,16 +198,6 @@ While *CurveFitter* is a powerful tool, there are some known limitations:
 
 This suggests that further investigation is needed to determine the most suitable metric for selecting the best model.    
 Users are encouraged to analyze the fitting results carefully and consider additional criteria, such as function interpretability and physical meaning, when choosing the most appropriate calibration function. The provided plotting methods can be useful for visually inspecting the fits and validating model selection.
-
-## Documentation
-
-The full documentation for this project is available in the `docs` folder. You can view it by opening the `index.html` file in your browser.
-
-If you want to build the documentation locally, you can use Sphinx. Simply navigate to the `docs` folder and run:
-
-`bash
-sphinx-build -b html . _build`      
-
 
 ## Project Overview
 
