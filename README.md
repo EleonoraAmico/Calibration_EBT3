@@ -5,13 +5,15 @@
 3. [Installation](#installation)  
    - [Requirements](#requirements)  
    - [Installing Dependencies](#installing-dependencies)  
-4. [Tutorial](#Tutorial)  
+4. [Tutorial](#tutorial)  
 5. [Processing Modes](#processing-modes)  
 6. [Supported Non-Linear Functions](#supported-non-linear-functions)  
 7. [Advanced Methods](#advanced-methods)  
 8. [Multiple Metric Calculation](#multiple-metric-calculation)  
-9. [Testing](#testing)  
-10. [Considerations & Limitations](#known-limitations) 
+9. [Testing](#testing) 
+11. [Considerations and Limitations](#considerations-and-limitations)
+12. [Documentation](#documentation)
+13. [Project overview](#project-overview)
 
 ## Description
 CurveFitter is a Python library designed to calibrate Gafchromic EBT3 radiochromic films used in dosimetry applications. The main challenge in calibrating these films arises from the lack of a well-known calibration function. In addition, each batch of films must be individually calibrated.
@@ -150,7 +152,7 @@ This metric helps evaluate the fitting process by considering not only the error
 Tests have been implemented to ensure the reliability and robustness of the library. These tests validate various aspects of the fitting and data processing methods, ensuring consistent and accurate results for different datasets.
 The tests are located in the `tests` folder and can be executed using [pytest](https://docs.pytest.org/).
 
-## Considerations & Limitations
+## Considerations and Limitations
 
 While *CurveFitter* is a powerful tool, there are some known limitations:
 
@@ -163,3 +165,22 @@ While *CurveFitter* is a powerful tool, there are some known limitations:
 
 This suggests that further investigation is needed to determine the most suitable metric for selecting the best model.    
 Users are encouraged to analyze the fitting results carefully and consider additional criteria, such as function interpretability and physical meaning, when choosing the most appropriate calibration function. The provided plotting methods can be useful for visually inspecting the fits and validating model selection.
+
+## Documentation
+
+The full documentation for this project is available in the `docs` folder. You can view it by opening the `index.html` file in your browser.
+
+If you want to build the documentation locally, you can use Sphinx. Simply navigate to the `docs` folder and run:
+
+`bash
+sphinx-build -b html . _build`      
+
+
+## Project Overview
+
+The goal of this project was to create an open-source code to assist users in calibrating Gafchromic EBT3 radiochromic films for dosimetry applications. The library provides methods to process and fit data, ensuring accurate and reliable results for each batch of films.
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
