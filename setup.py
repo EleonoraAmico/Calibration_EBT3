@@ -17,6 +17,7 @@ setup(
         'dev': [        # Dependencies for testing
             'pytest==7.4.0',
             'hypothesis==6.124.0',
+            'pytest-cov==6.0.0',
         ],
         'docs': [      # Dependencies for documentation (e.g., Sphinx themes, etc.)
             'Sphinx==5.0.2',
