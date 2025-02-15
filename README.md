@@ -5,7 +5,7 @@
 3. [Installation](#installation)  
    - [Requirements](#requirements)  
    - [Installing Dependencies](#installing-dependencies)  
-4. [Basic Usage](#basic-usage)  
+4. [Tutorial](#Tutorial)  
 5. [Processing Modes](#processing-modes)  
 6. [Supported Non-Linear Functions](#supported-non-linear-functions)  
 7. [Advanced Methods](#advanced-methods)  
@@ -14,14 +14,15 @@
 10. [Considerations & Limitations](#known-limitations) 
 
 ## Description
-CurveFitter is a Python library designed to calibrate Gafchromic EBT3 radiochromic films used in dosimetry applications. The main challenge in calibrating these films arises from the lack of a well-known calibration function. As such, each batch of films must be individually calibrated.
+CurveFitter is a Python library designed to calibrate Gafchromic EBT3 radiochromic films used in dosimetry applications. The main challenge in calibrating these films arises from the lack of a well-known calibration function. In addition, each batch of films must be individually calibrated.
 
 To address this, CurveFitter provides an automated framework for testing various calibration functions found in the scientific literature. The goal is to identify the calibration function that minimizes the Mean Squared Error (MSE) between the measured and expected dose-response data. By comparing different calibration models, this library helps users find the most accurate calibration for their specific set of data.
 
 The calibration process involves two main variables:
 
-The X-axis represents the pixel values measured from the film.
-The Y-axis represents the corresponding relative dose associated with those pixel values.
+- The X-axis represents the pixel values measured from the film.
+- The Y-axis represents the corresponding relative dose associated with those pixel values.
+
 However, because there are different methods to derive the calibration curve, the library also includes tools to process the data in multiple ways. Specifically, it supports methods to calculate the optical density (OD) and net optical density (netOD), as these are widely used in the literature for calibrating Gafchromic films. This flexibility allows the user to choose the appropriate method depending on the dataset and the specific application.
 
 Additionally, a separate class called FitPlotter has been implemented to facilitate the visualization of the calibration results. This class inherits from CurveFitter and generates plots of the fitting functions, providing an intuitive way to visually assess the performance of different calibration models. The FitPlotter class includes the plot_fits method, which allows users to plot the fitting functions based on different plot types, including:
@@ -29,7 +30,8 @@ Additionally, a separate class called FitPlotter has been implemented to facilit
 - *ALL*: Displays all fitting functions.
 - *POLYNOMIAL*: Displays only the polynomial fit.
 - *FUNCTION*: Displays a specific function, if provided.
-- *BEST FIT*: Displays the best fitting function selected based on the minimization of MSE. The plotting functionality supports the display of the fitted curves and the data points, making it easier for users to compare and validate their calibration choices.
+- *BEST FIT*: Displays the best fitting function selected based on the minimization of MSE.  
+The plotting functionality supports the display of the fitted curves and the data points, making it easier for users to compare and validate their calibration choices.
 
 The library is designed to be flexible and can easily be adapted to different datasets. Its primary purpose is to streamline the calibration process, reducing both manual effort and the risk of errors in the calibration procedure.
 
@@ -40,7 +42,7 @@ The library is designed to be flexible and can easily be adapted to different da
   * Optical Density (OD)
   * Net Optical Density (netOD)
 - Data processing and normalization for both polynomial and non-linear fits
-- Automatic model selection through minimization of multiple metrics (score, MSE and chi- square value)
+- Automatic model selection through minimization of multiple metrics (score and MSE)
 - Advanced parameter estimation techniques
 
 ## Installation
@@ -48,9 +50,13 @@ The library is designed to be flexible and can easily be adapted to different da
 ### Requirements
 - Python 3.8+
 - Required libraries:
-  * numpy
-  * scipy
-  * scikit-learn
+   * numpy==1.24.4
+   * scipy==1.10.1
+   * scikit-learn==1.5.1
+   * pytest==7.4.0
+   * pytest-cov==6.0.0
+   * hypothesis==6.124.0
+   * matplotlib==3.8.4
 
 ### Installing Dependencies
 `bash pip install -r requirements.txt`
@@ -142,6 +148,7 @@ This metric helps evaluate the fitting process by considering not only the error
 
 ## Testing
 Tests have been implemented to ensure the reliability and robustness of the library. These tests validate various aspects of the fitting and data processing methods, ensuring consistent and accurate results for different datasets.
+The tests are located in the `tests` folder and can be executed using [pytest](https://docs.pytest.org/).
 
 ## Considerations & Limitations
 
@@ -152,7 +159,7 @@ While *CurveFitter* is a powerful tool, there are some known limitations:
   - The recommended metric for evaluating polynomial fits is the *score*, which takes into account both Mean Squared Error (MSE) and the complexity of the function.
 
 - *Non-linear Fits*: 
-  - While the Mean Squared Error (MSE) is a widely used metric for evaluating model performance, it does not always guarantee that the selected best-fit function aligns with the expected non-linear behavior.         During testing, it was observed that in some cases, the MSE-based selection chose a different function rather than the expected one.  
+  - While the Mean Squared Error (MSE) is a widely used metric for evaluating model performance, it does not always guarantee that the selected best-fit function      aligns with the expected non-linear behavior. During testing, it was observed that in some cases, the MSE-based selection chose a different function rather        than the expected one.  
 
-This suggests that further investigation is needed to determine the most suitable metric for selecting the best model.  
-Users are encouraged to analyze the fitting results carefully and consider additional criteria, such as function interpretability and physical meaning, when choosing the most appropriate calibration function.   The provided plotting methods can be useful for visually inspecting the fits and validating model selection.
+This suggests that further investigation is needed to determine the most suitable metric for selecting the best model.    
+Users are encouraged to analyze the fitting results carefully and consider additional criteria, such as function interpretability and physical meaning, when choosing the most appropriate calibration function. The provided plotting methods can be useful for visually inspecting the fits and validating model selection.
