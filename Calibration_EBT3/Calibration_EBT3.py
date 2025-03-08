@@ -869,6 +869,107 @@ class CurveFitter:
             best_fit.get('metrics', {}).get(selection_metric), 
             fitting_results
         )
+    
+    def _fit_polynomial_for_degree(self, x_processed, y, x_norm, x_mean, x_std, degree):
+        """
+        Fit a polynomial of specified degree to the data.
+        
+        Parameters
+        ----------
+        x_processed : array-like
+            Processed x values in original scale
+        y : array-like
+            y values
+        x_norm : array-like
+            Normalized x values
+        x_mean : float
+            Mean of x values used for normalization
+        x_std : float
+            Standard deviation of x values used for normalization
+        degree : int
+            Degree of polynomial to fit
+            
+        Returns
+        -------
+        dict
+            Dictionary containing fitting results including metrics, coefficients, and polynomial
+            
+        Raises
+        ------
+        Exception
+            If fitting process fails
+        """
+        # Fit with normalized x
+        coefficients_norm = np.polyfit(x_norm, y, degree)
+        
+        # Convert coefficients back to original scale
+        p_norm = np.poly1d(coefficients_norm)
+        x_test = np.linspace(min(x_processed), max(x_processed), self.l)
+        y_test = p_norm((x_test - x_mean) / x_std)
+        coefficients = np.polyfit(x_test, y_test, degree)
+        
+        p = np.poly1d(coefficients)
+        y_pred = p(x_processed)
+        
+        # Calculate metrics using the new method
+        metrics = self._calculate_metrics(y, y_pred, degree, coefficients)
+        
+        return {
+            'function': f'polynomial_degree_{degree}',
+            'metrics': metrics,
+            'polynomial': p,
+            'coefficients': coefficients,
+            'degree': degree,
+            'success': True
+        }
+    
+    def _check_constant_values(self, x_processed, y):
+        """
+        Check for constant x or y values and handle these special cases.
+        
+        Parameters
+        ----------
+        x_processed : array-like
+            Processed x values
+        y : array-like
+            y values
+            
+        Returns
+        -------
+        tuple
+            (is_constant, fitting_results)
+            - is_constant: bool, True if either x or y is constant
+            - fitting_results: list or None, fitting results if constant case was handled
+            
+        Raises
+        ------
+        ValueError
+            When all x values are constant (fitting is undefined)
+        """
+        # Check for constant y values
+        if np.all(y == y[0]):
+            # For constant y, return degree 0 polynomial with that constant
+            constant_coeff = np.array([y[0]])
+            fitting_results = [{
+                'function': 'constant_y',
+                'metrics': {
+                    'mse': 0,
+                    'score': 0,
+                },
+                'coefficients': constant_coeff,
+                'degree': 0,
+                'polynomial': np.poly1d(constant_coeff),
+                'success': True
+            }]
+            return True, fitting_results
+        
+        # Check for constant x values
+        if np.all(x_processed == x_processed[0]):
+            # Cannot fit polynomial if x is constant - undefined
+            raise ValueError("Cannot fit polynomial when all x values are constant")
+        
+        # Neither x nor y is constant
+        return False, None
         
     def polynomial_fit(self, x, y, mode=ProcessingMode.PV, max_degree=4):
 
@@ -1022,26 +1123,10 @@ class CurveFitter:
             
                 
         # Check for constant x or y values
-        if np.all(y == y[0]):
-            # For constant y, return degree 0 polynomial with that constant
-            constant_coeff = np.array([y[0]])
-            fitting_results = [{
-                'function': 'constant_y',
-                'metrics': {
-                    'mse': 0,
-                    'score': 0,
-                    
-                },
-                'coefficients': constant_coeff,
-                'degree': 0,
-                'polynomial': np.poly1d(constant_coeff),
-                'success': True
-            }]
-            return fitting_results
-        
-        if np.all(x_processed == x_processed[0]):
-            # Cannot fit polynomial if x is constant - undefined
-            raise ValueError("Cannot fit polynomial when all x values are constant")
+
+        is_constant, const_results = self._check_constant_values(x_processed, y)
+        if is_constant:
+            return const_results
             
         # Normalize data for numerical stability
         x_mean, x_std = np.nanmean(x_processed), np.nanstd(x_processed)
@@ -1059,34 +1144,12 @@ class CurveFitter:
             warnings.warn(f"Reducing maximum polynomial degree from {max_degree} to {actual_max_degree} "
                          f"based on sample size of {n_points} points", UserWarning)
         
-        
-            
         for degree in range(1, actual_max_degree + 1):
             try:
-                # Fit with normalized x
-                coefficients_norm = np.polyfit(x_norm, y, degree)
-                
-                # Convert coefficients back to original scale
-                p_norm = np.poly1d(coefficients_norm)
-                x_test = np.linspace(min(x_processed), max(x_processed), self.l)
-                y_test = p_norm((x_test - x_mean) / x_std)
-                coefficients = np.polyfit(x_test, y_test, degree)
-                
-                p = np.poly1d(coefficients)
-                y_pred = p(x_processed)
-                
-                # Calculate metrics using the new method
-                metrics = self._calculate_metrics(y, y_pred, degree, coefficients)
-            
-               
-                fitting_results.append({
-                    'function': f'polynomial_degree_{degree}',
-                    'metrics': metrics,
-                    'polynomial': p,
-                    'coefficients': coefficients,
-                    'degree': degree,
-                    'success': True
-                })
+                result = self._fit_polynomial_for_degree(
+                    x_processed, y, x_norm, x_mean, x_std, degree
+                )
+                fitting_results.append(result)
     
             except Exception as e:
                 fitting_results.append({
@@ -1169,6 +1232,50 @@ class CurveFitter:
                 self.logger.info(f"{displayed_name}: score = {score_str}, mse = {mse_str}, r2 = {r2_str}")
             else:
                 self.logger.warning(f"{displayed_name}: Fitting Failed")
+                
+    def _process_fit_result(self, func, func_name, x_processed, y, initial_guess):
+        """
+        Process a single curve fitting attempt with given initial guess.
+        
+        Parameters:
+        -----------
+        func : callable
+            The fitting function
+        func_name : str
+            Name of the fitting function
+        x_processed : array-like
+            Processed x values
+        y : array-like
+            Y values
+        initial_guess : array-like or None
+            Initial parameter guess
+            
+        Returns:
+        --------
+        dict or None
+            The fit result dictionary if successful, None otherwise
+        """
+        try:
+            popt, pcov = curve_fit(func, x_processed, y, p0=initial_guess, maxfev=self.maxfev)
+            
+            perr = np.sqrt(np.diag(pcov))
+            
+            if np.all(np.isfinite(pcov)):
+                y_fit = func(x_processed, *popt)
+                metrics = self._calculate_metrics(y, y_fit, 0, popt)
+                
+                return {
+                    'function': func_name,
+                    'metrics': metrics,
+                    'success': True,
+                    'error_message': None,
+                    'coefficients': popt,
+                    'err_coeff': perr
+                }
+                
+        except Exception as e:
+            self.logger.debug(f"Attempt with initial guess {initial_guess} failed for {func_name}: {str(e)}")
+            return None
            
     def calculate_non_linear_fit(self, x, y, mode=ProcessingMode.PV, print_results=False):
         """
@@ -1267,36 +1374,16 @@ class CurveFitter:
                     best_metrics = None
                     fit_succeeded = False
                     
-                    try:
-                        
-                        popt, pcov = curve_fit(func, x_processed, y, p0=initial_guess, maxfev=self.maxfev)
-                        
-                        perr = np.sqrt(np.diag(pcov))
-                        
-                        if np.all(np.isfinite(pcov)):
-                            y_fit = func(x_processed, *popt)
-                            metrics = self._calculate_metrics(y, y_fit, 0, popt)
-                            
-                            # Keep track of the best fit among all initial guesses
-                            if best_metrics is None or metrics['mse'] < best_metrics['mse']:
-                                best_fit = {
-                                    'function': func_name,
-                                    'metrics': metrics,
-                                    'success': True,
-                                    'error_message': None,
-                                    'coefficients': popt,
-                                    'err_coeff': perr
-                                }
-                                best_metrics = metrics
-                            
-                            fit_succeeded = True
-                     
-       
-                    except Exception as e:
-                        self.logger.debug(f"Attempt with initial guess {initial_guess} failed for {func_name}: {str(e)}")
-                        continue
-                
-                
+                    # Process this fitting attempt
+                    fit_result = self._process_fit_result(func, func_name, x_processed, y, initial_guess)
+                    
+                    # Compare with the best fit so far
+                    if fit_result is not None:
+                        metrics = fit_result['metrics']
+                        if best_metrics is None or metrics['mse'] < best_metrics['mse']:
+                            best_fit = fit_result
+                            best_metrics = metrics
+                            fit_succeeded = True                       
                 # After trying all initial guesses, append the best result or failure
                 if fit_succeeded:
                     self.logger.info(f"Fit successfully completed for: {func_name}")
