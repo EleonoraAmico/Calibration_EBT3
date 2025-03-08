@@ -6,7 +6,7 @@
 
 import numpy as np
 from scipy.optimize import curve_fit
-from sklearn.metrics import mean_squared_error
+from sklearn.metrics import mean_squared_error, r2_score
 import enum
 import warnings
 import logging
@@ -107,7 +107,9 @@ class CurveFitter:
             'generalized_rational': self._generalized_rational,
             'log_function': self._log_function
         }
-        
+        self.n = 700
+        self.l = 100
+        self.maxfev = 10000
         
     def _process_values(self, x_values, y_values=None, mode=ProcessingMode.PV):
         """
@@ -354,7 +356,9 @@ class CurveFitter:
             raise ValueError("Input array 'x' must not be empty.")
         
         if np.max(x) - np.min(x) == 0:
+            warnings.warn("Input array has zero range. Returning array of zeros instead of performing scaling.", UserWarning)
             x_scaled = np.zeros_like(x)
+            
         else:
             x_scaled = (x - np.min(x)) / (np.max(x) - np.min(x))
         return x_scaled
@@ -399,7 +403,7 @@ class CurveFitter:
             raise ValueError("Parameter 'b' must not be zero, as this would result in a constant function.")
         if a == 0: 
             raise ValueError("Parameter 'a' must not be zero, as this would result in a constant function.")
-        exp_component = np.exp(np.clip(b * x_scaled, -700, 700))  # Clip the exponent range
+        exp_component = np.exp(np.clip(b * x_scaled, -self.n, self.n))  # Clip the exponent range
     
         return a * exp_component + c
 
@@ -435,8 +439,8 @@ class CurveFitter:
             raise ValueError("Parameters 'a', 'b', 'c', and 'd' must not be zero.")
     
         x_scaled = self._normalized_input(x)
-        exp_component_one = np.exp(np.clip(b * x_scaled, -700, 700)) 
-        exp_component_two = np.exp(np.clip(d * x_scaled, -700, 700))
+        exp_component_one = np.exp(np.clip(b * x_scaled, -self.n, self.n)) 
+        exp_component_two = np.exp(np.clip(d * x_scaled, -self.n, self.n))
         return a * exp_component_one + c * exp_component_two
 
     
@@ -697,7 +701,7 @@ class CurveFitter:
         """
         
         mse = mean_squared_error(y_true, y_pred)
-                
+        r2 = r2_score(y_true, y_pred)
         # Coefficient ratio
         coeff_ratio = (np.abs(coefficients[0]) / 
                        np.mean(np.abs(coefficients[1:])) 
@@ -714,7 +718,8 @@ class CurveFitter:
         return {
             'mse': mse,
             'score': score,
-            'coeff_ratio': coeff_ratio
+            'coeff_ratio': coeff_ratio,
+            'r2':r2
         }
     
     
@@ -861,7 +866,7 @@ class CurveFitter:
         return (
             best_fit.get('function'), 
             best_fit.get('coefficients'), 
-            best_fit.get('metrics', {}).get('score'), 
+            best_fit.get('metrics', {}).get(selection_metric), 
             fitting_results
         )
         
@@ -1063,7 +1068,7 @@ class CurveFitter:
                 
                 # Convert coefficients back to original scale
                 p_norm = np.poly1d(coefficients_norm)
-                x_test = np.linspace(min(x_processed), max(x_processed), 100)
+                x_test = np.linspace(min(x_processed), max(x_processed), self.l)
                 y_test = p_norm((x_test - x_mean) / x_std)
                 coefficients = np.polyfit(x_test, y_test, degree)
                 
@@ -1158,10 +1163,10 @@ class CurveFitter:
             # Format metrics value
             score_str = f"{result['metrics']['score']:.2e}" if result['metrics'] is not None else "Failed"
             mse_str = f"{result['metrics']['mse']:.2e}" if result['metrics'] is not None else "Failed"
-            
+            r2_str = f"{result['metrics']['r2']:.2e}" if result['metrics'] is not None else "Failed"
             # Use appropriate log level based on success
             if result['success']:
-                self.logger.info(f"{displayed_name}: score = {score_str}, mse = {mse_str}")
+                self.logger.info(f"{displayed_name}: score = {score_str}, mse = {mse_str}, r2 = {r2_str}")
             else:
                 self.logger.warning(f"{displayed_name}: Fitting Failed")
            
@@ -1264,8 +1269,10 @@ class CurveFitter:
                     
                     try:
                         
-                        popt, pcov = curve_fit(func, x_processed, y, p0=initial_guess, maxfev=10000)
-                
+                        popt, pcov = curve_fit(func, x_processed, y, p0=initial_guess, maxfev=self.maxfev)
+                        
+                        perr = np.sqrt(np.diag(pcov))
+                        
                         if np.all(np.isfinite(pcov)):
                             y_fit = func(x_processed, *popt)
                             metrics = self._calculate_metrics(y, y_fit, 0, popt)
@@ -1277,7 +1284,8 @@ class CurveFitter:
                                     'metrics': metrics,
                                     'success': True,
                                     'error_message': None,
-                                    'coefficients': popt
+                                    'coefficients': popt,
+                                    'err_coeff': perr
                                 }
                                 best_metrics = metrics
                             
@@ -1371,6 +1379,7 @@ class CurveFitter:
         # Implement smarter initial guess based on function characteristics 
         handler_name = f"_guess_for_{func.__name__.lstrip('_')}"
         handler = getattr(self, handler_name, self._default_initial_guess)
+        
         return handler(x, y, func)
 
     # --------------------------
@@ -1658,6 +1667,52 @@ class CurveFitter:
         num_params = len(inspect.signature(func).parameters) - 1
         return [1.0] * num_params
     
+    def _create_parameter_ranges_and_samples(self, initial_guess, num_samples):
+        """Create parameter ranges and sample from prior distributions.
+        
+        Args:
+            initial_guess (list): Initial parameter guesses
+            num_samples (int): Number of samples to generate
+            
+        Returns:
+            tuple: (samples, param_ranges) where samples is a list of arrays and 
+                   param_ranges is a list of tuples (lower, upper)
+        """
+        
+        # Create ranges around initial guess
+        param_ranges = []
+        for guess in initial_guess:
+            # Add checks for invalid values
+            if np.isnan(guess):
+                raise ValueError("Guess is NaN")
+                lower, upper = -1.0, 1.0
+            elif guess == 0:
+                lower, upper = -1.0, 1.0
+            else:
+                scale = max(0.1 * abs(guess), 1e-3)
+                lower = guess - 5 * scale
+                upper = guess + 5 * scale
+                if upper <= lower:
+                    upper = lower + 1e-3
+            param_ranges.append((lower, upper))
+    
+        # Define and sample from prior distributions
+        priors = []
+        for lower, upper in param_ranges:
+            scale = upper - lower
+            if scale <= 0:
+                scale = 1e-3
+            priors.append(st.uniform(loc=lower, scale=scale))
+    
+        try:
+            samples = [prior.rvs(num_samples) for prior in priors]
+        except ValueError as e:
+            print(f"Error in sampling: {e}")
+            print(f"Parameter ranges: {param_ranges}")
+            raise
+    
+        return samples, param_ranges
+    
     def _generate_bayesian_initial_guess(self, func, x, y, num_samples=5000):
         """
         
@@ -1746,29 +1801,35 @@ class CurveFitter:
             and observed data.
         
         """
-       # Get initial guess
+        # Fix the seed for reproducibility
+        np.random.seed(42) 
+        # Get initial guess
         initial_guess = self._generate_initial_guess(func, x, y)
         
-           # Create ranges around initial guess
+        # Create ranges around initial guess
         param_ranges = []
-        for guess in initial_guess:
-            if guess == 0:
-                lower, upper = -1.0, 1.0
-            else:
-                # Use relative scaling but allow broader exploration
-                scale = max(0.1 * abs(guess), 1e-3)
-                lower = guess - 5 * scale
-                upper = guess + 5 * scale
-            lower, upper = sorted([lower, upper])
-            param_ranges.append((lower, upper))
+        # for guess in initial_guess:
+        #     if guess == 0:
+        #         lower, upper = -1.0, 1.0
+        #     else:
+        #         # Use relative scaling but allow broader exploration
+        #         scale = max(0.1 * abs(guess), 0.1)
+        #         lower = guess - 5 * scale
+        #         upper = guess + 5 * scale
+            
+        #     lower, upper = sorted([lower, upper])
+        #     param_ranges.append((lower, upper))
         
-        # Define prior distributions for each parameter
-        priors = [st.uniform(loc=range[0], scale=range[1]-range[0]) for range in param_ranges]
+        # # Define prior distributions for each parameter
+        # priors = [st.uniform(loc=range[0], scale=range[1]-range[0]) for range in param_ranges]
 
         
-        # Sample parameters
-        samples = [prior.rvs(num_samples) for prior in priors]
-        
+        # # Sample parameters
+        # samples = [prior.rvs(num_samples) for prior in priors]
+        samples, param_ranges = self._create_parameter_ranges_and_samples(
+            initial_guess, 
+            num_samples
+        )
         # Generate simulated data for each parameter set
         distances = []
         for params in zip(*samples):
