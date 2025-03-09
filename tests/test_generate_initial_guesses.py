@@ -227,11 +227,13 @@ class TestInitialGuessGenerator():
         WHEN: Generating initial guesses
         THEN: Should dispatch to appropriate specific or default guess generators
         """
-        x = np.linspace(0, 10, 11)
+        x = np.linspace(0, 1000, 100)
         # Per la funzione exponential, generate_initial_guess dovrebbe chiamare _guess_for_exponential
         y_exp = fitter._exponential(x, 2, 0.3, 1)
         result_exp = fitter._generate_initial_guess(fitter._exponential, x, y_exp)
+        assert np.any(~np.isnan(result_exp)), "NaN values found in result"
         expected_exp = fitter._guess_for_exponential(x, y_exp, fitter._exponential)
+        assert np.any(~np.isnan(expected_exp)), "NaN values found in result"
         assert_array_almost_equal(result_exp, expected_exp)
         
         # Per una funzione sconosciuta (unknown_func), dovrebbe chiamare _default_initial_guess

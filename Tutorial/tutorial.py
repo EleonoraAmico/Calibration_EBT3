@@ -66,7 +66,7 @@ y_data_red = df.iloc[:, 0].astype(float) / 100  # Dose values (scaled)
 
 fitter = CurveFitter()
 fitting_results = fitter.calculate_non_linear_fit(
-    x_data_red, y_data_red, mode=ProcessingMode.PV, print_results=True
+    x_data_red, y_data_red, mode=ProcessingMode.NET_OD, print_results=True
 )
 # Note: Setting print_results=True will automatically log the fitting results.
 #%%
@@ -82,9 +82,12 @@ fitter.log_fitting_results(fitting_results_polynomial)
 #%%
 # Select the best fit based on a specified metric (e.g., score)
 best_funct, coeff, score, fitting_results = fitter.select_best_fit(
-    fitting_results_polynomial, selection_metric='score'
+    fitting_results, selection_metric='mse'
 )
-
+#%%
+print(best_funct)
+print(coeff)
+#%%
 
 # -----------------------------------------------------------------------------
 # Step 5: Generate plots to visualize the fitting results.
@@ -124,7 +127,7 @@ plot.plot_fits(
     x_data_red, y_data_red,
     title="Best Fit for Red Channel",
     plot_type=PlotType.BEST_FIT,
-    mode=ProcessingMode.PV
+    mode=ProcessingMode.NET_OD
 )
 # Note: PlotType.BESTFIT will show only the function with the lowest MSE.
 #%%
