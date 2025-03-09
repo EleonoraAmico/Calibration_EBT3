@@ -29,9 +29,11 @@ class TestBayesianInitialGuesses():
         return fitter._exponential(x, *true_params)
     
     def test_bayesian_exponential_parameters_within_range(self, fitter, test_data, y_data_exponential):
-        """GIVEN a naive initial guess for exponential function parameters WHEN
-        _generate_bayesian_initial_guess is called THEN each parameter in the
-        Bayesian guess must lie within the expected range."""
+        """
+        Test the range of each parameter in the Bayesian guess
+        GIVEN a naive initial guess for exponential function parameters
+        WHEN_generate_bayesian_initial_guess is called 
+        THEN each parameter in the Bayesian guess must lie within the expected range."""
         # GIVEN: Calculate the naive guess
         x  = test_data
         naive_guess = fitter._guess_for_exponential(x, y_data_exponential, fitter._exponential)
@@ -61,9 +63,11 @@ class TestBayesianInitialGuesses():
                 f"Parameter {i} (value: {param}) is outside the expected range [{lower}, {upper}]"
     
     def test_bayesian_exponential_improves_rmse(self, fitter, test_data, y_data_exponential):
-        """GIVEN a dataset generated from an exponential function WHEN
-        _generate_bayesian_initial_guess is called THEN the Bayesian guess
-        should have a lower RMSE compared to the naive guess."""
+        """
+        Test the MSE of Bayesian guess should be lower of the MSE of the naive guess   
+        GIVEN a dataset generated from an exponential function 
+        WHEN _generate_bayesian_initial_guess is called 
+        THEN the Bayesian guess should have a lower RMSE compared to the naive guess."""
         # GIVEN: Calculate the naive guess
         x  = test_data
         naive_guess = fitter._guess_for_exponential(x, y_data_exponential, fitter._exponential)
@@ -107,7 +111,12 @@ class TestBayesianInitialGuessLimitCases:
         np.array([np.nan, np.nan, np.nan])
     ])
     def test_invalid_initial_guesses(self, fitter, test_data, bad_input):
-        """Test behavior with invalid initial guesses (inf, nan)."""
+        """
+        Test behavior with invalid initial guesses (inf, nan).
+        GIVEN a function, number of parameters, and test cases.
+        WHEN generating the Bayesian initial guess.
+        THEN raises an error 
+        """
         original_generate = fitter._generate_initial_guess
         fitter._generate_initial_guess = lambda func, x, y: bad_input
 
@@ -159,9 +168,9 @@ class TestBayesianInitialGuessLimitCases:
         """Test that the Bayesian initial guess returns the correct number of
         parameters.
 
-        GIVEN a function, number of parameters, and test cases, WHEN generating
-        the Bayesian initial guess, THEN the number of parameters should match
-        the expected count.
+        GIVEN a function, number of parameters, and test cases.
+        WHEN generating the Bayesian initial guess.
+        THEN the number of parameters should match the expected count.
         """
         func = getattr(fitter, f"_{func_name}")
         
