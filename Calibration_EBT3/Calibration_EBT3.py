@@ -13,6 +13,7 @@ import logging
 import sys
 import inspect
 import scipy.stats as st
+from typing import Optional, Tuple, Union, List, Dict, Any, ArrayLike, Callable
 
 class ProcessingMode(enum.Enum):
     """
@@ -110,8 +111,15 @@ class CurveFitter:
         self.n = 700
         self.l = 100
         self.maxfev = 10000
+        self.range_width = 5
+        self.num_samples = 5000
         
-    def _process_values(self, x_values, y_values=None, mode=ProcessingMode.PV):
+    def _process_values(
+        self, 
+        x_values: np.ndarray, 
+        y_values: Optional[np.ndarray] = None, 
+        mode: ProcessingMode = ProcessingMode.PV
+    ) -> Tuple[np.ndarray, Optional[np.ndarray]]:
         """
         
         Process x_values according to different modes.
@@ -189,7 +197,7 @@ class CurveFitter:
                 )
                 # Filter positive values
                 x_values = x_values[x_values > 0]
-            return np.log10(65535 / x_values)
+            return np.log10(2**16 / x_values)
         
         elif mode.name == "NET_OD":
             if y_values is None:
@@ -211,7 +219,11 @@ class CurveFitter:
             return -np.log10(x_values / x_zero)
             
 
-    def _validate_data(self, x, y):
+    def _validate_data(
+        self, 
+        x: Union[List[float], np.ndarray, Tuple[float, ...]], 
+        y: Union[List[float], np.ndarray, Tuple[float, ...]]
+    ) -> Tuple[np.ndarray, np.ndarray]:
         """
         
         Validates input data arrays for dose measurement processing.
@@ -312,7 +324,7 @@ class CurveFitter:
             warnings.warn("x array contains NaN or inf values", UserWarning)
             return False
                 
-        if not np.all((x_array >= 0) & (x_array <= 65535)):
+        if not np.all((x_array >= 0) & (x_array <= 2**16)):
             warnings.warn("x values must be between 0 and 65535", UserWarning)
             return False
             
@@ -323,7 +335,10 @@ class CurveFitter:
         return True
 
     
-    def _normalized_input(self, x):
+    def _normalized_input(
+        self,   
+        x: Union[List[float], np.ndarray, Tuple[float, ...]]
+    ) -> np.ndarray:
         """
         
         Normalize the input array to a [0, 1] range.
@@ -365,7 +380,13 @@ class CurveFitter:
 
 
     
-    def _exponential(self, x, a, b, c):
+    def _exponential(
+        self, 
+        x: Union[List[float], np.ndarray, Tuple[float, ...]], 
+        a: float, 
+        b: float, 
+        c: float
+    ) -> np.ndarray:
         """
         
         Exponential function with scaling and overflow control.
@@ -408,7 +429,14 @@ class CurveFitter:
         return a * exp_component + c
 
 
-    def _combination_of_exponential(self, x, a, b, c, d):
+    def _combination_of_exponential(
+        self, 
+        x: Union[List[float], np.ndarray, Tuple[float, ...]], 
+        a: float, 
+        b: float, 
+        c: float,
+        d: float
+    ) -> np.ndarray:
         """
         
         Generalized combination of exponential function with scaling and
@@ -445,7 +473,15 @@ class CurveFitter:
 
     
 
-    def _generalized_rational(self, x, a, b, c, d, e):
+    def _generalized_rational(
+        self, 
+        x: Union[List[float], np.ndarray, Tuple[float, ...]], 
+        a: float, 
+        b: float, 
+        c: float,
+        d: float,
+        e: float
+    ) -> np.ndarray:
         """
         
         Generalized rational function with optional scaling, offset, and
@@ -508,7 +544,12 @@ class CurveFitter:
         return ((a + b * x) / denominator) + e
 
 
-    def _log_function(self, x, a, b):
+    def _log_function(
+        self, 
+        x: Union[List[float], np.ndarray, Tuple[float, ...]], 
+        a: float, 
+        b: float
+    ) -> np.ndarray:
         """
         
         Enhanced logarithmic function of the form: f(x) = (ln(b + x)/b)/a with input validation and numerical stability.
@@ -600,7 +641,13 @@ class CurveFitter:
         
         return result
 
-    def _calculate_metrics(self, y_true, y_pred, degree, coefficients):
+    def _calculate_metrics(
+        self,
+        y_true: np.ndarray,
+        y_pred: np.ndarray,
+        degree: int,
+        coefficients: List[float]
+    ) -> Dict[str, float]:
         """
         
         Calculate various metrics for model fitting.
@@ -723,7 +770,11 @@ class CurveFitter:
         }
     
     
-    def select_best_fit(self, fitting_results, selection_metric='score'):
+    def select_best_fit(
+        self,
+        fitting_results: List[Dict[str, Any]],
+        selection_metric: str = 'score'
+    ) -> Tuple[Optional[Callable], Optional[ArrayLike], Optional[float], List[Dict[str, Any]]]:
         """
         
         Selects the best fitting function from a list of candidate fits
@@ -870,17 +921,25 @@ class CurveFitter:
             fitting_results
         )
     
-    def _fit_polynomial_for_degree(self, x_processed, y, x_norm, x_mean, x_std, degree):
+    def _fit_polynomial_for_degree(
+        self,
+        x_processed: np.ndarray,
+        y: np.ndarray,
+        x_norm: np.ndarray,
+        x_mean: float,
+        x_std: float,
+        degree: int
+    ) -> Dict[str, Any]:
         """
         Fit a polynomial of specified degree to the data.
         
         Parameters
         ----------
-        x_processed : array-like
+        x_processed : np.ndarray
             Processed x values in original scale
-        y : array-like
+        y : np.ndarray
             y values
-        x_norm : array-like
+        x_norm : np.ndarray
             Normalized x values
         x_mean : float
             Mean of x values used for normalization
@@ -923,15 +982,20 @@ class CurveFitter:
             'success': True
         }
     
-    def _check_constant_values(self, x_processed, y):
+    def _check_constant_values(
+        self,
+        x_processed: np.ndarray,
+        y: np.ndarray,      
+    ) -> Dict[str, Any]:
+            
         """
         Check for constant x or y values and handle these special cases.
         
         Parameters
         ----------
-        x_processed : array-like
+        x_processed : np.ndarray
             Processed x values
-        y : array-like
+        y : np.ndarray
             y values
             
         Returns
@@ -971,7 +1035,13 @@ class CurveFitter:
         # Neither x nor y is constant
         return False, None
         
-    def polynomial_fit(self, x, y, mode=ProcessingMode.PV, max_degree=4):
+    def polynomial_fit(
+        self, 
+        x: Union[List[float], np.ndarray, Tuple[float, ...]],
+        y: Union[List[float], np.ndarray, Tuple[float, ...]],
+        mode: ProcessingMode = ProcessingMode.PV,
+        max_degree: int = 4
+    ) -> List[Dict[str, Any]]:
 
         """
         
@@ -1163,7 +1233,10 @@ class CurveFitter:
 
 
     
-    def log_fitting_results(self, fitting_results):
+    def log_fitting_results(     
+        self,
+        fitting_results: List[Dict[str, Any]]
+    ) -> None:
         """
         
         Logs a formatted summary of polynomial and non-linear fitting
@@ -1233,7 +1306,14 @@ class CurveFitter:
             else:
                 self.logger.warning(f"{displayed_name}: Fitting Failed")
                 
-    def _process_fit_result(self, func, func_name, x_processed, y, initial_guess):
+    def _process_fit_result(
+        self,
+        func: Callable[[np.ndarray, ...], np.ndarray],
+        func_name: str,
+        x_processed: np.ndarray,
+        y: np.ndarray,
+        initial_guess: Optional[np.ndarray] = None
+    ) -> Dict[str, Any]:
         """
         Process a single curve fitting attempt with given initial guess.
         
@@ -1243,11 +1323,11 @@ class CurveFitter:
             The fitting function
         func_name : str
             Name of the fitting function
-        x_processed : array-like
+        x_processed : np.ndarray
             Processed x values
-        y : array-like
+        y : np.ndarray
             Y values
-        initial_guess : array-like or None
+        initial_guess : np.ndarray or None
             Initial parameter guess
             
         Returns:
@@ -1277,7 +1357,13 @@ class CurveFitter:
             self.logger.debug(f"Attempt with initial guess {initial_guess} failed for {func_name}: {str(e)}")
             return None
            
-    def calculate_non_linear_fit(self, x, y, mode=ProcessingMode.PV, print_results=False):
+    def calculate_non_linear_fit(
+        self,
+        x: Union[List[float], np.ndarray, Tuple[float, ...]],
+        y: Union[List[float], np.ndarray, Tuple[float, ...]],
+        mode: ProcessingMode = ProcessingMode.PV,
+        print_results: bool = False
+    ) -> List[Dict[str, Any]]:
         """
         
         Calculate the best non-linear fit for a given dataset.
@@ -1402,7 +1488,12 @@ class CurveFitter:
             self.log_fitting_results(fitting_results)
         return fitting_results
        
-    def _generate_initial_guess(self, func, x, y):
+    def _generate_initial_guess(
+        self, 
+        func: Callable, 
+        x: np.ndarray,
+        y: np.ndarray
+    ) -> List[float]:
         """
         
         Dispatch to specific initialization methods based on the provided
@@ -1419,11 +1510,11 @@ class CurveFitter:
             func : callable
                 The target function for which an initial guess is needed. This is typically a model function 
                 used in curve fitting.
-            x : array-like
-                Independent variable data. Must be a numeric sequence convertible to a numpy array.
-            y : array-like
-                Dependent variable data corresponding to x. Must be a numeric sequence convertible to a numpy array.
-     
+            x : np.ndarray
+                Independent variable data. 
+            y : np.ndarray
+                Dependent variable data corresponding to x. 
+                
         Returns
         -------
             list
@@ -1461,8 +1552,6 @@ class CurveFitter:
             1. SciPy documentation on curve_fit: https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.curve_fit.html
         
         """
-        x = np.asarray(x)
-        y = np.asarray(y)
         # Implement smarter initial guess based on function characteristics 
         handler_name = f"_guess_for_{func.__name__.lstrip('_')}"
         handler = getattr(self, handler_name, self._default_initial_guess)
@@ -1473,7 +1562,12 @@ class CurveFitter:
     # Specialized Initial Guesses
     # --------------------------
     
-    def _guess_for_exponential(self, x, y, func):
+    def _guess_for_exponential(
+        self, 
+        x: np.ndarray,
+        y: np.ndarray,
+        func: Callable, 
+    ) -> List[float]:
         """
         
         Generate an initial guess for an exponential function of the form
@@ -1486,10 +1580,10 @@ class CurveFitter:
     
         Parameters
         -----------
-            x : array-like
-                Independent variable data, expected to be a numeric sequence convertible to a numpy array.
-            y : array-like
-                Dependent variable data corresponding to x, expected to be a numeric sequence convertible to a numpy array.
+            x : np.array
+                Independent variable data
+            y : np.array
+                Dependent variable data corresponding to x
             func : callable
                 The exponential model function, typically of the form a*exp(b*x) + c.
     
@@ -1527,7 +1621,12 @@ class CurveFitter:
         x_range = np.ptp(x) or 1.0
         return [amplitude, -1.0/x_range, y_min]
     
-    def _guess_for_combination_of_exponential(self, x, y, func):
+    def _guess_for_combination_of_exponential(
+        self, 
+        x: np.ndarray,
+        y: np.ndarray,
+        func: Callable
+    ) -> List[float]:
         """
         
         Generate an initial guess for a combined exponential function of the
@@ -1539,10 +1638,10 @@ class CurveFitter:
     
         Parameters
         ----------
-            x : array-like
-                Independent variable data, expected to be a numeric sequence convertible to a numpy array.
-            y : array-like
-                Dependent variable data corresponding to x, expected to be a numeric sequence convertible to a numpy array.
+            x : np.ndarray
+                Independent variable data
+            y : np.ndarray
+                Dependent variable data corresponding to x
             func : callable
                 The combined exponential function, typically of the form a*exp(b*x) + c*exp(d*x).
         
@@ -1586,7 +1685,12 @@ class CurveFitter:
             -1.0/x_range,       # d
         ]
     
-    def _guess_for_generalized_rational(self, x, y, func):
+    def _guess_for_generalized_rational(
+        self, 
+        x: np.ndarray,
+        y: np.ndarray,
+        func: Callable
+    ) -> List[float]:
         """
         
         Generate an initial guess for a generalized rational function of the
@@ -1599,10 +1703,10 @@ class CurveFitter:
     
         Parameters
         ----------
-            x : array-like
-                Independent variable data, expected to be a numeric sequence convertible to a numpy array.
-            y : array-like
-                Dependent variable data corresponding to x, expected to be a numeric sequence convertible to a numpy array.
+            x : np.ndarray
+                Independent variable data
+            y : np.ndarray
+                Dependent variable data corresponding to x
             func : callable
                 The rational function model, typically of the form (a + b*x)/(c*x + d) + e.
         
@@ -1647,7 +1751,13 @@ class CurveFitter:
             np.min(y) if np.min(y) < 0 else 0.0  # e
         ]
     
-    def _guess_for_log_function(self, x, y, func):
+    def _guess_for_log_function(
+        self, 
+        x: np.ndarray,
+        y: np.ndarray,
+        func: Callable
+    ) -> List[float]:
+        
         """
        
         Generate an initial guess for a logarithmic function with stability
@@ -1659,9 +1769,9 @@ class CurveFitter:
         
         Parameters
         ----------
-            x : array-like
-                Independent variable data, expected to be a numeric sequence convertible to a numpy array.
-            y : array-like
+            x : np.ndarray
+                Independent variable data
+            y : np.ndarray
                 Dependent variable data corresponding to x (not directly used in this estimation).
             func : callable
                 The logarithmic model function, for example, one of the form a * log(x + b).
@@ -1697,12 +1807,17 @@ class CurveFitter:
         """
         min_x = np.min(x)
         return [
-            1.0,                   # a
+            1.0, # a
             max(1.0, -min_x + 1e-5),  # b (ensure x + b > 0)
             
         ]
     
-    def _default_initial_guess(self, x, y, func):
+    def _default_initial_guess(
+        self, 
+        x: np.ndarray,
+        y: np.ndarray,
+        func: Callable
+    ) -> List[float]:
         """
         
         Generate a default initial guess for an unknown function.
@@ -1754,14 +1869,20 @@ class CurveFitter:
         num_params = len(inspect.signature(func).parameters) - 1
         return [1.0] * num_params
     
-    def _create_parameter_ranges_and_samples(self, initial_guess, num_samples):
+    def _create_parameter_ranges_and_samples(
+        self, 
+        initial_guess: List[float], 
+        num_samples: int
+    ) -> Tuple[List[np.ndarray], List[Tuple[float, float]]]:
         """Create parameter ranges and sample from prior distributions.
         
-        Args:
+        Parameters
+        ----------
             initial_guess (list): Initial parameter guesses
             num_samples (int): Number of samples to generate
             
-        Returns:
+        Returns
+        -------
             tuple: (samples, param_ranges) where samples is a list of arrays and 
                    param_ranges is a list of tuples (lower, upper)
         """
@@ -1777,8 +1898,8 @@ class CurveFitter:
                 lower, upper = -1.0, 1.0
             else:
                 scale = max(0.1 * abs(guess), 1e-3)
-                lower = guess - 5 * scale
-                upper = guess + 5 * scale
+                lower = guess - self.range_width * scale
+                upper = guess + self.range_width * scale
                 if upper <= lower:
                     upper = lower + 1e-3
             param_ranges.append((lower, upper))
@@ -1800,7 +1921,12 @@ class CurveFitter:
     
         return samples, param_ranges
     
-    def _generate_bayesian_initial_guess(self, func, x, y, num_samples=5000):
+    def _generate_bayesian_initial_guess(
+        self, 
+        func: Callable, 
+        x: np.ndarray, 
+        y: np.ndarray
+    ) -> List[float]:
         """
         
         Generate an initial guess for function parameters using Bayesian
@@ -1822,9 +1948,9 @@ class CurveFitter:
         ----------
             func : callable
                 The mathematical function to fit.
-            x : array-like
+            x : np.ndarray
                 Independent variable values.
-            y : array-like
+            y : np.ndarray
                 Observed dependent variable values corresponding to `x`.
             num_samples : int, optional
                 Number of samples drawn for Bayesian estimation, default is 5000.
@@ -1842,10 +1968,21 @@ class CurveFitter:
     
         Notes
         -----
+            - This method uses self.num_samples (default: 5000) for Bayesian estimation, 
+                which can be configured during class initialization.
             - This method is particularly useful when an analytical approach for determining 
               the initial guess is not available or unreliable.
             - The Bayesian sampling approach allows exploration of multiple plausible parameter sets 
               instead of relying on a single deterministic estimate.
+            - The method uses self.range_width (default: 5) to define the parameter search space 
+              around the initial guess.
+    
+        Class Attributes Used
+        --------------------
+            num_samples : int
+                Number of samples drawn for Bayesian estimation. Set during class initialization.
+            range_width : float
+                Factor determining the width of parameter ranges. Set during class initialization.
     
         Examples
         --------
@@ -1858,7 +1995,11 @@ class CurveFitter:
             >>> x_data = np.array([1, 2, 3, 4, 5])
             >>> y_data = exponential_function(x_data, 2, -0.5, 1) + np.random.normal(0, 0.1, len(x_data))
             >>> 
-            >>> model = ModelFittingClass()
+            >>> model = CurveFitter()
+            >>> initial_params = model._generate_bayesian_initial_guess(exponential_function, x_data, y_data)
+            >>> print(initial_params)
+            >>> model = CurveFitter()  # Default num_samples=5000
+            >>> # Or customize: model = ModelFittingClass(num_samples=10000)
             >>> initial_params = model._generate_bayesian_initial_guess(exponential_function, x_data, y_data)
             >>> print(initial_params)
     
@@ -1895,27 +2036,9 @@ class CurveFitter:
         
         # Create ranges around initial guess
         param_ranges = []
-        # for guess in initial_guess:
-        #     if guess == 0:
-        #         lower, upper = -1.0, 1.0
-        #     else:
-        #         # Use relative scaling but allow broader exploration
-        #         scale = max(0.1 * abs(guess), 0.1)
-        #         lower = guess - 5 * scale
-        #         upper = guess + 5 * scale
-            
-        #     lower, upper = sorted([lower, upper])
-        #     param_ranges.append((lower, upper))
-        
-        # # Define prior distributions for each parameter
-        # priors = [st.uniform(loc=range[0], scale=range[1]-range[0]) for range in param_ranges]
-
-        
-        # # Sample parameters
-        # samples = [prior.rvs(num_samples) for prior in priors]
         samples, param_ranges = self._create_parameter_ranges_and_samples(
             initial_guess, 
-            num_samples
+            self.num_samples
         )
         # Generate simulated data for each parameter set
         distances = []
