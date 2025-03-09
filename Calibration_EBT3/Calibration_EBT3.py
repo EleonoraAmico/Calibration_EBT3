@@ -13,7 +13,8 @@ import logging
 import sys
 import inspect
 import scipy.stats as st
-from typing import Optional, Tuple, Union, List, Dict, Any, ArrayLike, Callable
+from typing import Optional, Tuple, Union, List, Dict, Any, Callable
+
 
 class ProcessingMode(enum.Enum):
     """
@@ -96,7 +97,8 @@ class LoggerUtility:
         return logger
 
 class CurveFitter:
-    def __init__(self, log_level=logging.INFO, log_file=None):
+    def __init__(
+        self, log_level=logging.INFO, log_file=None, n = 700, l = 100, range_width = 10, maxfev = 10000, num_samples=5000):
         self.logger = LoggerUtility.create_logger(
             name='CurveFitter', 
             level=log_level, 
@@ -108,11 +110,11 @@ class CurveFitter:
             'generalized_rational': self._generalized_rational,
             'log_function': self._log_function
         }
-        self.n = 700
-        self.l = 100
-        self.maxfev = 10000
-        self.range_width = 5
-        self.num_samples = 5000
+        self.n = n
+        self.l = l
+        self.maxfev = maxfev
+        self.range_width = range_width
+        self.num_samples = num_samples
         
     def _process_values(
         self, 
@@ -774,7 +776,7 @@ class CurveFitter:
         self,
         fitting_results: List[Dict[str, Any]],
         selection_metric: str = 'score'
-    ) -> Tuple[Optional[Callable], Optional[ArrayLike], Optional[float], List[Dict[str, Any]]]:
+    ) -> Tuple[Optional[Callable], Optional[Any], Optional[float], List[Dict[str, Any]]]:
         """
         
         Selects the best fitting function from a list of candidate fits
@@ -1915,9 +1917,7 @@ class CurveFitter:
         try:
             samples = [prior.rvs(num_samples) for prior in priors]
         except ValueError as e:
-            print(f"Error in sampling: {e}")
-            print(f"Parameter ranges: {param_ranges}")
-            raise
+            raise ValueError(f"Sampling failed with parameters {param_ranges}: {e}")
     
         return samples, param_ranges
     
