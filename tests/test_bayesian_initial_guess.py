@@ -38,7 +38,8 @@ class TestBayesianInitialGuesses():
         # GIVEN: Calculate the naive guess
         x  = test_data
         naive_guess = fitter._guess_for_exponential(x, y_data_exponential, fitter._exponential)
-        
+        # Fix the seed for test reproducibility
+        np.random.seed(42)
         # WHEN: Generate the Bayesian guess
         bayesian_guess = fitter._generate_bayesian_initial_guess(
             fitter._exponential, 
@@ -66,7 +67,8 @@ class TestBayesianInitialGuesses():
         # Given
         initial_guess = [5.0, -3.0, 10.0]
         num_samples = 100
-        
+        # Fix the seed for test reproducibility
+        np.random.seed(42)
         # When
         samples, param_ranges = fitter._create_parameter_ranges_and_samples(
             initial_guess, num_samples
@@ -97,7 +99,8 @@ class TestBayesianInitialGuesses():
         # Given
         initial_guess = [0.0, 5.0, 0.0]
         num_samples = 50
-        
+        # Fix the seed for test reproducibility
+        np.random.seed(42)
         # When
         samples, param_ranges = fitter._create_parameter_ranges_and_samples(
             initial_guess, num_samples
@@ -121,7 +124,8 @@ class TestBayesianInitialGuesses():
         # Given
         initial_guess = [3.0, np.nan, 7.0]
         num_samples = 30
-        
+        # Fix the seed for test reproducibility
+        np.random.seed(42)
         # When/Then
         with pytest.raises(ValueError):
             fitter._create_parameter_ranges_and_samples(initial_guess, num_samples)
@@ -136,7 +140,8 @@ class TestBayesianInitialGuesses():
         # Given
         initial_guess = [0, 0]
         num_samples = -1 
-            
+        # Fix the seed for test reproducibility
+        np.random.seed(42)
         # When/Then
         with pytest.raises(ValueError):
             fitter._create_parameter_ranges_and_samples(initial_guess, num_samples)
@@ -153,7 +158,8 @@ class TestBayesianInitialGuesses():
         small_sampler = CurveFitter(range_width=1e-10)
         initial_guess = [1.0, 2.0]
         num_samples = 20
-        
+        # Fix the seed for test reproducibility
+        np.random.seed(42)
         # When
         samples, param_ranges = small_sampler._create_parameter_ranges_and_samples(
             initial_guess, num_samples
@@ -174,7 +180,8 @@ class TestBayesianInitialGuesses():
         # Given
         initial_guess = [-10.0, -20.0]
         num_samples = 40
-        
+        # Fix the seed for test reproducibility
+        np.random.seed(42)
         # When
         samples, param_ranges = fitter._create_parameter_ranges_and_samples(
             initial_guess, num_samples
@@ -199,6 +206,8 @@ class TestBayesianInitialGuesses():
         """
         # Given
         x = test_data
+        # Fix the seed for test reproducibility
+        np.random.seed(42)
         # When
         result = fitter._generate_bayesian_initial_guess(fitter._exponential, x, y_data_exponential)
         
@@ -218,7 +227,8 @@ class TestBayesianInitialGuesses():
         x = test_data
         exact_params = [1, -1, 1.0]
         y = fitter._exponential(x, *exact_params)  # No noise
-        
+        # Fix the seed for test reproducibility
+        np.random.seed(42)
         
         result = fitter._generate_bayesian_initial_guess(fitter._exponential, x, y)
         y_result = fitter._exponential(x, *result) 
@@ -237,7 +247,8 @@ class TestBayesianInitialGuesses():
         # Given
         x= test_data
         y= fitter._exponential(x, 2, 3, 4)
-        
+        # Fix the seed for test reproducibility
+        np.random.seed(42)
         # When
         result1 = fitter._generate_bayesian_initial_guess(fitter._exponential, x, y)
         result2 = fitter._generate_bayesian_initial_guess(fitter._exponential, x, y)
@@ -257,7 +268,8 @@ class TestBayesianInitialGuesses():
         y = fitter._exponential(x, 2, 3, 4)
         poor_initial_guess = [1.0, -0.1, 0.5]  # Deliberately off from real parameters
         
-        
+        # Fix the seed for test reproducibility
+        np.random.seed(42)
         # When
         improved_guess = fitter._generate_bayesian_initial_guess(fitter._exponential, x, y)
         
@@ -281,7 +293,8 @@ class TestBayesianInitialGuesses():
         # Given
         x = np.array([1, 2, 3])
         y = np.array([4, 5])  # Different length than x
-        
+        # Fix the seed for test reproducibility
+        np.random.seed(42)
         # When/Then
         with pytest.raises(ValueError):
             fitter._generate_bayesian_initial_guess(fitter._exponential, x, y)
@@ -298,7 +311,8 @@ class TestBayesianInitialGuesses():
         y = fitter._exponential(x, 2, 3, 4)
         fitter_small = CurveFitter(num_samples=50)
         fitter_large = CurveFitter(num_samples=200)
-        
+        # Fix the seed for test reproducibility
+        np.random.seed(42)
         
         result_small = fitter_small._generate_bayesian_initial_guess(fitter._exponential, x, y)
         result_large = fitter_large._generate_bayesian_initial_guess(fitter._exponential, x, y)
