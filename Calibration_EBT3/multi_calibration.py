@@ -7,7 +7,7 @@ Created on Sat Jan 11 16:26:36 2025
 import numpy as np
 from typing import Tuple, Dict, Any
 from Calibration_EBT3 import CurveFitter, ProcessingMode
-from single_channel_calibration import SingleChannelCalibration
+from Calibration_EBT3.single_channel_calibration import SingleChannelCalibration
 
 
 class MultiChannelCalibration(CurveFitter):
