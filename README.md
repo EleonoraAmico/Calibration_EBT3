@@ -25,7 +25,9 @@ The calibration process involves two main variables:
 
 However, because there are different methods to derive the calibration curve, the library also includes tools to process the data in multiple ways. Specifically, it supports methods to calculate the optical density (OD) and net optical density (netOD), as these are widely used in the literature for calibrating Gafchromic films. This flexibility allows the user to choose the appropriate method depending on the dataset and the specific application.
 
-Additionally, a separate class called FitPlotter has been implemented to facilitate the visualization of the calibration results. This class inherits from CurveFitter and generates plots of the fitting functions, providing an intuitive way to visually assess the performance of different calibration models. The FitPlotter class includes the plot_fits method, which allows users to plot the fitting functions based on different plot types, including:
+### FitPlotter
+A separate class called FitPlotter has been implemented to facilitate the visualization of the calibration results.
+This class inherits from CurveFitter and generates plots of the fitting functions, providing an intuitive way to visually assess the performance of different calibration models. The FitPlotter class includes the plot_fits method, which allows users to plot the fitting functions based on different plot types, including:
 
 - *ALL*: Displays all fitting functions.
 - *POLYNOMIAL*: Displays only the polynomial fit.
@@ -34,6 +36,29 @@ Additionally, a separate class called FitPlotter has been implemented to facilit
 The plotting functionality supports the display of the fitted curves and the data points, making it easier for users to compare and validate their calibration choices.
 
 The library is designed to be flexible and can easily be adapted to different datasets. Its primary purpose is to streamline the calibration process, reducing both manual effort and the risk of errors in the calibration procedure.
+
+### SingleChannelCalibration
+The SingleChannelCalibration class extends the CurveFitter base class, inheriting its curve-fitting capabilities while adding specific functionality for channel-based calibration.
+The primary components of this system include:
+
+- Channel identification and result storage
+- Calibration curve fitting
+- Dose calculation based on calibrated parameters
+
+### MultiChannelCalibration
+The MultiChannelCalibration class also inherits from the base CurveFitter class to leverage common fitting functionalities while implementing specialized multichannel processing.
+Calibration Process
+The system independently processes the three color channels (red, green, and blue) of the scanned film image. Each channel is managed by a dedicated SingleChannelCalibration instance, allowing for specialized processing of the unique characteristics of each color channel's response to radiation.
+To achieve dose reconstruction, the methodology employs a weighted averaging approach where the contribution of each channel to the final dose measurement is determined by its calibration performance. The weights are inversely proportional to the Mean Square Error (MSE) of each channel's calibration fit, mathematically expressed as:  
+<p align="center">
+   $$w_i = \frac{1/MSE_i}{\sum_{j} (1/MSE_j)}$$
+</p>
+where w<sub>i</sub> represents the weight of channel i, and MSE<sub>i</sub> is its corresponding mean square error. 
+The dose reconstruction algorithm processes the RGB components of an image independently and combines them using the previously determined optimal weights. This approach can be represented as:
+<p align="center">
+   $$D_{combined} = \sum_{i} (w_i \cdot D_i)$$
+</p>
+where D<sub>i</sub> represents the dose calculated from channel i, and w<sub>i</sub> is its corresponding weight.
 
 ## Key Features
 
